@@ -19,6 +19,7 @@ from ultralytics.nn.modules import (
     C3,
     C3TR,
     ELAN1,
+    ECAAttention,
     OBB,
     OBB26,
     PSA,
@@ -1672,6 +1673,10 @@ def parse_model(d, ch, verbose=True):
             if m is HGBlock:
                 args.insert(4, n)  # number of repeats
                 n = 1
+        elif m is ECAAttention:
+            c1 = ch[f]
+            c2 = c1
+            args = [c1]
         elif m is ResNetLayer:
             c2 = args[1] if args[3] else args[1] * 4
         elif m is torch.nn.BatchNorm2d:
