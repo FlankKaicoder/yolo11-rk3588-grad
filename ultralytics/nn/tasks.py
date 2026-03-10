@@ -18,6 +18,7 @@ from ultralytics.nn.modules import (
     C2PSA,
     C3,
     C3TR,
+    CBAM,
     ELAN1,
     ECAAttention,
     OBB,
@@ -1677,6 +1678,10 @@ def parse_model(d, ch, verbose=True):
             c1 = ch[f]
             c2 = c1
             args = [c1]
+        elif m is CBAM:
+            c1 = ch[f]
+            c2 = c1
+            args = [c1,*args]
         elif m is ResNetLayer:
             c2 = args[1] if args[3] else args[1] * 4
         elif m is torch.nn.BatchNorm2d:

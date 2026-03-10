@@ -47,6 +47,7 @@ from .block import (
     C3x,
     CBFuse,
     CBLinear,
+    CBAM,
     ContrastiveHead,
     GhostBottleneck,
     HGBlock,
