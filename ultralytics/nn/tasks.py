@@ -27,6 +27,7 @@ from ultralytics.nn.modules import (
     SPP,
     SPPELAN,
     SPPF,
+    SimAM,
     A2C2f,
     AConv,
     ADown,
@@ -1679,6 +1680,10 @@ def parse_model(d, ch, verbose=True):
             c2 = c1
             args = [c1]
         elif m is CBAM:
+            c1 = ch[f]
+            c2 = c1
+            args = [c1,*args]
+        elif m is SimAM:
             c1 = ch[f]
             c2 = c1
             args = [c1,*args]
