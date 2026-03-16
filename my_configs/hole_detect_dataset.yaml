@@ -1,0 +1,15 @@
+path: /home/kk/ultralytics_yolo11/datasets/hole_detect_dataset
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: bent
+  1: burn_through
+  2: carbon
+  3: corrosion
+  4: crack
+  5: foreign_matter
+  6: missing_coating
+  7: missing_material
+  8: scratch
