@@ -1,4 +1,4 @@
-path: /home/kk/ultralytics_yolo11/datasets/hole_detect_dataset
+path: /root/autodl-tmp/yolo11-rk3588-grad/datasets/hole_detect_dataset
 train: images/train
 val: images/val
 test: images/test
