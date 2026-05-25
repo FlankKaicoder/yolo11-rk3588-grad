@@ -1,14 +1,14 @@
-import os
-import copy
 import argparse
-from pathlib import Path
+import copy
+import os
 from datetime import datetime
-
-import torch
-from ultralytics import YOLO
+from pathlib import Path
 
 # 关键：必须先导入自定义蒸馏模型模块，torch.load 才能反序列化蒸馏版 checkpoint
 import distill_seg.model  # noqa: F401
+import torch
+
+from ultralytics import YOLO
 
 
 def parse_args():
@@ -61,7 +61,7 @@ def main():
     src_state = src_model.state_dict()
     dst_state = student.state_dict()
 
-    print(f"[3/5] Filtering student-compatible parameters")
+    print("[3/5] Filtering student-compatible parameters")
     filtered_state = {}
     skipped = []
 
@@ -116,7 +116,9 @@ def main():
     print(f"[5/5] Done. Exported file size: {size_mb:.2f} MB")
 
     print("\n建议下一步：")
-    print(f"yolo segment val model={out_path} data=/root/autodl-tmp/yolo11-rk3588-grad/datasets/new_dataseg/data.yaml imgsz=640 device=0")
+    print(
+        f"yolo segment val model={out_path} data=/root/autodl-tmp/yolo11-rk3588-grad/datasets/new_dataseg/data.yaml imgsz=640 device=0"
+    )
 
 
 if __name__ == "__main__":
