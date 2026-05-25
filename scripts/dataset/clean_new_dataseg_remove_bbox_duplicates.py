@@ -1,7 +1,7 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 import yaml
-from collections import defaultdict
 
 SRC_ROOT = Path("/root/autodl-tmp/yolo11-rk3588-grad/datasets/new_dataseg")
 DST_ROOT = Path("/root/autodl-tmp/yolo11-rk3588-grad/datasets/new_dataseg_clean_polygon")
@@ -12,15 +12,18 @@ IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 IOU_THR = 0.999
 EPS = 1e-5
 
+
 def get_images(img_dir: Path):
     if not img_dir.exists():
         return []
     return sorted([p for p in img_dir.rglob("*") if p.suffix.lower() in IMG_EXTS])
 
+
 def polygon_bbox(coords):
     xs = coords[0::2]
     ys = coords[1::2]
     return min(xs), min(ys), max(xs), max(ys)
+
 
 def bbox_iou(a, b):
     ax1, ay1, ax2, ay2 = a
@@ -43,15 +46,13 @@ def bbox_iou(a, b):
         return 0.0
     return inter / union
 
+
 def is_same_bbox(a, b):
     return all(abs(x - y) <= EPS for x, y in zip(a, b)) or bbox_iou(a, b) >= IOU_THR
 
+
 def parse_label(label_path: Path):
-    lines = [
-        x.strip()
-        for x in label_path.read_text(encoding="utf-8", errors="ignore").splitlines()
-        if x.strip()
-    ]
+    lines = [x.strip() for x in label_path.read_text(encoding="utf-8", errors="ignore").splitlines() if x.strip()]
 
     polygons = []
     boxes_5col = []
@@ -67,12 +68,14 @@ def parse_label(label_path: Path):
             try:
                 cls = parts[0]
                 coords = list(map(float, parts[1:]))
-                polygons.append({
-                    "cls": cls,
-                    "coords": coords,
-                    "line": line,
-                    "bbox": polygon_bbox(coords),
-                })
+                polygons.append(
+                    {
+                        "cls": cls,
+                        "coords": coords,
+                        "line": line,
+                        "bbox": polygon_bbox(coords),
+                    }
+                )
             except Exception:
                 bad_lines.append(line)
 
@@ -81,11 +84,13 @@ def parse_label(label_path: Path):
             try:
                 cls = parts[0]
                 x1, y1, x2, y2 = map(float, parts[1:])
-                boxes_5col.append({
-                    "cls": cls,
-                    "bbox": (x1, y1, x2, y2),
-                    "line": line,
-                })
+                boxes_5col.append(
+                    {
+                        "cls": cls,
+                        "bbox": (x1, y1, x2, y2),
+                        "line": line,
+                    }
+                )
             except Exception:
                 bad_lines.append(line)
 
@@ -112,6 +117,7 @@ def parse_label(label_path: Path):
             suspicious_boxes.append(box["line"])
 
     return kept_lines, removed_dup_boxes, suspicious_boxes, bad_lines
+
 
 def convert_split(split):
     src_img_dir = SRC_ROOT / "images" / split
@@ -189,10 +195,11 @@ def convert_split(split):
                     f.write(line + "\n")
         print(f"[WARN] suspicious 5-col boxes saved to: {report_path}")
 
+
 def write_yaml():
     src_yaml = SRC_ROOT / "data.yaml"
     if src_yaml.exists():
-        with open(src_yaml, "r", encoding="utf-8") as f:
+        with open(src_yaml, encoding="utf-8") as f:
             data = yaml.safe_load(f)
     else:
         data = {}
@@ -219,6 +226,7 @@ def write_yaml():
 
     print(f"[OK] yaml saved: {DST_ROOT / 'data.yaml'}")
 
+
 def main():
     if not SRC_ROOT.exists():
         raise FileNotFoundError(SRC_ROOT)
@@ -236,6 +244,7 @@ def main():
         convert_split(split)
 
     write_yaml()
+
 
 if __name__ == "__main__":
     main()
