@@ -47,14 +47,12 @@ class BinaryTeacher(nn.Module):
         x = self.model.layer4(x)
 
         x = self.model.avgpool(x)
-        feat = torch.flatten(x, 1)   # [B, 512]
+        feat = torch.flatten(x, 1)  # [B, 512]
         return feat
 
     @torch.no_grad()
     def forward(self, x):
-        """
-        x: [B,3,H,W], 值域默认 0~1
-        返回 teacher feat: [B, 512]
+        """x: [B,3,H,W], 值域默认 0~1 返回 teacher feat: [B, 512].
         """
         p = next(self.model.parameters())
         dev = p.device
