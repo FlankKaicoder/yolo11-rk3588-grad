@@ -1,13 +1,13 @@
+from __future__ import annotations
+
 import argparse
 import csv
 import math
 import random
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional
 
-from PIL import Image
 import yaml
-
+from PIL import Image
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -40,11 +40,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_class_names(src_root: Path) -> Dict[int, str]:
+def load_class_names(src_root: Path) -> dict[int, str]:
     yaml_path = src_root / "data.yaml"
     if not yaml_path.exists():
         return {}
-    with open(yaml_path, "r", encoding="utf-8") as f:
+    with open(yaml_path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     names = data.get("names", {})
     if isinstance(names, list):
@@ -54,7 +54,7 @@ def load_class_names(src_root: Path) -> Dict[int, str]:
     return {}
 
 
-def list_images(image_dir: Path) -> List[Path]:
+def list_images(image_dir: Path) -> list[Path]:
     return sorted([p for p in image_dir.iterdir() if p.suffix.lower() in IMG_EXTS])
 
 
@@ -62,12 +62,12 @@ def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
 
 
-def xyxy_to_int_box(box: Tuple[float, float, float, float], w: int, h: int) -> Tuple[int, int, int, int]:
+def xyxy_to_int_box(box: tuple[float, float, float, float], w: int, h: int) -> tuple[int, int, int, int]:
     x1, y1, x2, y2 = box
-    x1 = int(math.floor(clamp(x1, 0, w - 1)))
-    y1 = int(math.floor(clamp(y1, 0, h - 1)))
-    x2 = int(math.ceil(clamp(x2, 1, w)))
-    y2 = int(math.ceil(clamp(y2, 1, h)))
+    x1 = math.floor(clamp(x1, 0, w - 1))
+    y1 = math.floor(clamp(y1, 0, h - 1))
+    x2 = math.ceil(clamp(x2, 1, w))
+    y2 = math.ceil(clamp(y2, 1, h))
     if x2 <= x1:
         x2 = min(w, x1 + 1)
     if y2 <= y1:
@@ -75,7 +75,7 @@ def xyxy_to_int_box(box: Tuple[float, float, float, float], w: int, h: int) -> T
     return x1, y1, x2, y2
 
 
-def box_iou_xyxy(a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]) -> float:
+def box_iou_xyxy(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
     ax1, ay1, ax2, ay2 = a
     bx1, by1, bx2, by2 = b
     inter_x1 = max(ax1, bx1)
@@ -95,19 +95,21 @@ def box_iou_xyxy(a: Tuple[float, float, float, float], b: Tuple[float, float, fl
     return inter / union
 
 
-def max_iou_with_boxes(candidate: Tuple[float, float, float, float], gt_boxes: List[Tuple[float, float, float, float]]) -> float:
+def max_iou_with_boxes(
+    candidate: tuple[float, float, float, float], gt_boxes: list[tuple[float, float, float, float]]
+) -> float:
     if not gt_boxes:
         return 0.0
     return max(box_iou_xyxy(candidate, gt) for gt in gt_boxes)
 
 
 def expand_box(
-    box: Tuple[float, float, float, float],
+    box: tuple[float, float, float, float],
     img_w: int,
     img_h: int,
     expand_ratio: float,
     min_crop_size: int,
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     x1, y1, x2, y2 = box
     bw = x2 - x1
     bh = y2 - y1
@@ -133,7 +135,7 @@ def expand_box(
     return nx1, ny1, nx2, ny2
 
 
-def crop_and_resize(img: Image.Image, box_xyxy: Tuple[float, float, float, float], patch_size: int) -> Image.Image:
+def crop_and_resize(img: Image.Image, box_xyxy: tuple[float, float, float, float], patch_size: int) -> Image.Image:
     w, h = img.size
     x1, y1, x2, y2 = xyxy_to_int_box(box_xyxy, w, h)
     patch = img.crop((x1, y1, x2, y2))
@@ -141,12 +143,12 @@ def crop_and_resize(img: Image.Image, box_xyxy: Tuple[float, float, float, float
     return patch
 
 
-def parse_yolo_seg_label(label_path: Path, img_w: int, img_h: int) -> List[Dict]:
+def parse_yolo_seg_label(label_path: Path, img_w: int, img_h: int) -> list[dict]:
     objs = []
     if not label_path.exists():
         return objs
 
-    with open(label_path, "r", encoding="utf-8") as f:
+    with open(label_path, encoding="utf-8") as f:
         lines = [ln.strip() for ln in f if ln.strip()]
 
     for idx, line in enumerate(lines):
@@ -199,7 +201,7 @@ def save_patch(
     patch.save(out_dir / filename)
 
 
-def write_meta_csv(meta_path: Path, rows: List[Dict]):
+def write_meta_csv(meta_path: Path, rows: list[dict]):
     if not rows:
         return
     meta_path.parent.mkdir(parents=True, exist_ok=True)
@@ -210,9 +212,9 @@ def write_meta_csv(meta_path: Path, rows: List[Dict]):
         writer.writerows(rows)
 
 
-def write_distribution_csv(out_path: Path, rows: List[Dict]):
+def write_distribution_csv(out_path: Path, rows: list[dict]):
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    counts: Dict[Tuple[str, str, str], int] = {}
+    counts: dict[tuple[str, str, str], int] = {}
     for r in rows:
         key = (r["split"], r["binary_label"], r["patch_type"])
         counts[key] = counts.get(key, 0) + 1
@@ -227,12 +229,12 @@ def write_distribution_csv(out_path: Path, rows: List[Dict]):
 def sample_easy_background_boxes(
     img_w: int,
     img_h: int,
-    gt_boxes: List[Tuple[float, float, float, float]],
-    wh_pool: List[Tuple[int, int]],
+    gt_boxes: list[tuple[float, float, float, float]],
+    wh_pool: list[tuple[int, int]],
     num_samples: int,
     max_iou_thresh: float,
     max_tries: int,
-) -> List[Tuple[float, float, float, float]]:
+) -> list[tuple[float, float, float, float]]:
     samples = []
     if not wh_pool:
         wh_pool = [(64, 64), (96, 96), (128, 128)]
@@ -274,10 +276,10 @@ def sample_near_background_boxes(
     bh = y2 - y1
 
     # near patch 不要和 GT 一样大，缩小一点才更容易采到
-    min_pw = max(48, int(round(0.5 * bw)))
-    max_pw = max(min_pw, int(round(0.8 * bw)))
-    min_ph = max(48, int(round(0.5 * bh)))
-    max_ph = max(min_ph, int(round(0.8 * bh)))
+    min_pw = max(48, round(0.5 * bw))
+    max_pw = max(min_pw, round(0.8 * bw))
+    min_ph = max(48, round(0.5 * bh))
+    max_ph = max(min_ph, round(0.8 * bh))
 
     # 四个邻近带：左、右、上、下
     tries = 0
@@ -323,7 +325,7 @@ def sample_near_background_boxes(
     return samples
 
 
-def build_wh_pool_for_split(src_root: Path, split: str) -> List[Tuple[int, int]]:
+def build_wh_pool_for_split(src_root: Path, split: str) -> list[tuple[int, int]]:
     image_dir = src_root / "images" / split
     label_dir = src_root / "labels" / split
 
@@ -335,8 +337,8 @@ def build_wh_pool_for_split(src_root: Path, split: str) -> List[Tuple[int, int]]
         objs = parse_yolo_seg_label(label_path, w, h)
         for obj in objs:
             x1, y1, x2, y2 = obj["bbox_xyxy"]
-            bw = max(16, int(round(x2 - x1)))
-            bh = max(16, int(round(y2 - y1)))
+            bw = max(16, round(x2 - x1))
+            bh = max(16, round(y2 - y1))
             wh_pool.append((bw, bh))
     return wh_pool
 
@@ -345,7 +347,7 @@ def process_split(
     src_root: Path,
     dst_root: Path,
     split: str,
-    class_names: Dict[int, str],
+    class_names: dict[int, str],
     patch_size: int,
     expand_ratio: float,
     min_crop_size: int,
@@ -354,7 +356,7 @@ def process_split(
     max_iou_bg_with_gt: float,
     near_outer_scale: float,
     max_sample_tries: int,
-) -> List[Dict]:
+) -> list[dict]:
     image_dir = src_root / "images" / split
     label_dir = src_root / "labels" / split
 
@@ -394,10 +396,7 @@ def process_split(
                 patch = crop_and_resize(img, defect_box, patch_size)
                 x1, y1, x2, y2 = xyxy_to_int_box(defect_box, img_w, img_h)
 
-                fname = (
-                    f"{safe_stem(img_path)}_defect_{orig_class}_gt{gt_id:03d}"
-                    f"_x{x1}_y{y1}_x{x2}_y{y2}.png"
-                )
+                fname = f"{safe_stem(img_path)}_defect_{orig_class}_gt{gt_id:03d}_x{x1}_y{y1}_x{x2}_y{y2}.png"
                 save_patch(patch, out_defect_dir, fname)
 
                 meta_rows.append(
@@ -433,10 +432,7 @@ def process_split(
                 patch = crop_and_resize(img, bg_box, patch_size)
                 x1, y1, x2, y2 = xyxy_to_int_box(bg_box, img_w, img_h)
 
-                fname = (
-                    f"{safe_stem(img_path)}_bg_easy_{bg_idx:03d}"
-                    f"_x{x1}_y{y1}_x{x2}_y{y2}.png"
-                )
+                fname = f"{safe_stem(img_path)}_bg_easy_{bg_idx:03d}_x{x1}_y{y1}_x{x2}_y{y2}.png"
                 save_patch(patch, out_bg_dir, fname)
 
                 meta_rows.append(
@@ -477,8 +473,7 @@ def process_split(
                     x1, y1, x2, y2 = xyxy_to_int_box(bg_box, img_w, img_h)
 
                     fname = (
-                        f"{safe_stem(img_path)}_bg_near_fromgt{gt_id:03d}_{near_idx:03d}"
-                        f"_x{x1}_y{y1}_x{x2}_y{y2}.png"
+                        f"{safe_stem(img_path)}_bg_near_fromgt{gt_id:03d}_{near_idx:03d}_x{x1}_y{y1}_x{x2}_y{y2}.png"
                     )
                     save_patch(patch, out_bg_dir, fname)
 
@@ -507,10 +502,10 @@ def process_split(
     return meta_rows
 
 
-def write_summary(summary_path: Path, all_rows: List[Dict]):
+def write_summary(summary_path: Path, all_rows: list[dict]):
     summary_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def count_rows(split: str, binary_label: Optional[str] = None, patch_type: Optional[str] = None) -> int:
+    def count_rows(split: str, binary_label: str | None = None, patch_type: str | None = None) -> int:
         rows = [r for r in all_rows if r["split"] == split]
         if binary_label is not None:
             rows = [r for r in rows if r["binary_label"] == binary_label]
