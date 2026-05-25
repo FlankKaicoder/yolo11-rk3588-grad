@@ -12,11 +12,7 @@ class BCLResNet18(nn.Module):
         backbone.fc = nn.Identity()
         self.encoder = backbone
 
-        self.projector = nn.Sequential(
-            nn.Linear(in_features, 512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, feat_dim)
-        )
+        self.projector = nn.Sequential(nn.Linear(in_features, 512), nn.ReLU(inplace=True), nn.Linear(512, feat_dim))
         self.classifier = nn.Linear(in_features, num_classes)
 
     def forward(self, x):
