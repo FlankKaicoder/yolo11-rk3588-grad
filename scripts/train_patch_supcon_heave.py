@@ -1,14 +1,14 @@
 import os
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader, WeightedRandomSampler
-from torchvision import datasets, transforms, models
 from sklearn.metrics import classification_report, confusion_matrix
+from torch.utils.data import DataLoader, WeightedRandomSampler
+from torchvision import datasets, models, transforms
 
 # =========================
 # 路径
@@ -79,11 +79,7 @@ class SupConResNet18(nn.Module):
         backbone.fc = nn.Identity()
         self.encoder = backbone
 
-        self.projector = nn.Sequential(
-            nn.Linear(in_features, 512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, feat_dim)
-        )
+        self.projector = nn.Sequential(nn.Linear(in_features, 512), nn.ReLU(inplace=True), nn.Linear(512, feat_dim))
 
         self.classifier = nn.Linear(in_features, num_classes)
 
@@ -101,9 +97,7 @@ class SupConLoss(nn.Module):
         self.temperature = temperature
 
     def forward(self, features, labels):
-        """
-        features: [bsz, n_views, dim]
-        labels:   [bsz]
+        """features: [bsz, n_views, dim] labels: [bsz].
         """
         device = features.device
         bsz = features.shape[0]
@@ -145,19 +139,23 @@ class SupConLoss(nn.Module):
 
 
 def build_transforms():
-    train_tf = transforms.Compose([
-        transforms.RandomResizedCrop(IMG_SIZE, scale=(0.8, 1.0)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.2),
-        transforms.RandomRotation(5),
-        transforms.ColorJitter(brightness=0.15, contrast=0.15),
-        transforms.ToTensor(),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.RandomResizedCrop(IMG_SIZE, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.RandomRotation(5),
+            transforms.ColorJitter(brightness=0.15, contrast=0.15),
+            transforms.ToTensor(),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+        ]
+    )
 
     return train_tf, val_tf
 
@@ -171,11 +169,7 @@ def build_weighted_sampler(samples):
         print(f"class_idx={cls_idx}, count={cnt}")
 
     sample_weights = [1.0 / class_count[label] for label in labels]
-    sampler = WeightedRandomSampler(
-        weights=sample_weights,
-        num_samples=len(sample_weights),
-        replacement=True
-    )
+    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
     return sampler
 
 
@@ -192,8 +186,8 @@ def train_one_epoch(model, loader, ce_criterion, supcon_criterion, optimizer):
 
         optimizer.zero_grad()
 
-        feat1, proj1, logits1 = model(x1)
-        feat2, proj2, logits2 = model(x2)
+        _feat1, proj1, logits1 = model(x1)
+        _feat2, proj2, logits2 = model(x2)
 
         ce_loss = 0.5 * (ce_criterion(logits1, labels) + ce_criterion(logits2, labels))
         features = torch.stack([proj1, proj2], dim=1)
@@ -259,19 +253,10 @@ def main():
     sampler = build_weighted_sampler(train_dataset.samples)
 
     train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        sampler=sampler,
-        num_workers=NUM_WORKERS,
-        drop_last=True
+        train_dataset, batch_size=BATCH_SIZE, sampler=sampler, num_workers=NUM_WORKERS, drop_last=True
     )
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS
-    )
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     model = SupConResNet18(num_classes=len(train_dataset.classes)).to(DEVICE)
     ce_criterion = nn.CrossEntropyLoss()
@@ -285,7 +270,7 @@ def main():
         train_loss, train_acc = train_one_epoch(model, train_loader, ce_criterion, supcon_criterion, optimizer)
         val_loss, val_acc = evaluate(model, val_loader, ce_criterion, train_dataset.classes)
 
-        print(f"\nEpoch [{epoch+1}/{EPOCHS}]")
+        print(f"\nEpoch [{epoch + 1}/{EPOCHS}]")
         print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
         print(f"Val   Loss: {val_loss:.4f}, Val   Acc: {val_acc:.4f}")
 

@@ -1,8 +1,9 @@
-from pathlib import Path
 import argparse
 import shutil
-import yaml
 from collections import Counter
+from pathlib import Path
+
+import yaml
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -29,13 +30,16 @@ NEW_NAMES = {
     2: "carbon",
 }
 
+
 def load_yaml(path: Path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
 
 def resolve_path(base: Path, p):
     p = Path(p)
     return p if p.is_absolute() else base / p
+
 
 def image_to_label_path(img_path: Path):
     parts = list(img_path.parts)
@@ -45,15 +49,18 @@ def image_to_label_path(img_path: Path):
     parts[idx] = "labels"
     return Path(*parts).with_suffix(".txt")
 
+
 def collect_images(img_dir: Path):
     if not img_dir.exists():
         return []
     return sorted([p for p in img_dir.rglob("*") if p.suffix.lower() in IMG_EXTS])
 
+
 def is_yolo_seg_polygon(parts):
     # YOLO-seg: class + 偶数个坐标
     # 所以总列数应为奇数，且 > 5
     return len(parts) > 5 and len(parts) % 2 == 1
+
 
 def convert_split(split, src_yaml_data, src_root: Path, dst_root: Path):
     if split not in src_yaml_data:
@@ -97,11 +104,7 @@ def convert_split(split, src_yaml_data, src_root: Path, dst_root: Path):
             missing_label_count += 1
             continue
 
-        lines = [
-            x.strip()
-            for x in src_lab.read_text(encoding="utf-8", errors="ignore").splitlines()
-            if x.strip()
-        ]
+        lines = [x.strip() for x in src_lab.read_text(encoding="utf-8", errors="ignore").splitlines() if x.strip()]
 
         if not lines:
             dst_lab.write_text("", encoding="utf-8")
@@ -140,6 +143,7 @@ def convert_split(split, src_yaml_data, src_root: Path, dst_root: Path):
     print(f"missing labels:  {missing_label_count}")
     print(f"empty labels:    {empty_label_count}")
     print(f"bad lines:       {bad_line_count}")
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -190,6 +194,7 @@ def main():
         yaml.safe_dump(out_yaml, f, allow_unicode=True, sort_keys=False)
 
     print(f"\n[OK] saved yaml: {dst_root / 'data.yaml'}")
+
 
 if __name__ == "__main__":
     main()
