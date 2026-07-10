@@ -119,7 +119,7 @@ def main():
             if not label_file.exists():
                 continue
 
-            with open(label_file, "r", encoding="utf-8") as f:
+            with open(label_file, encoding="utf-8") as f:
                 for line in f:
                     if not line.strip():
                         continue

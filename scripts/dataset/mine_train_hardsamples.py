@@ -1,7 +1,8 @@
-from pathlib import Path
 import argparse
+from pathlib import Path
 
 IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG"]
+
 
 def count_lines(path: Path):
     if not path.exists():
@@ -11,12 +12,14 @@ def count_lines(path: Path):
         return 0
     return len(text.splitlines())
 
+
 def find_image(img_dir: Path, stem: str):
     for ext in IMG_EXTS:
         p = img_dir / f"{stem}{ext}"
         if p.exists():
             return p.name
     return None
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -76,6 +79,7 @@ def main():
     print(f"hard_negative: {len(hard_neg)}")
     print(f"under: {len(under)}")
     print(f"over: {len(over)}")
+
 
 if __name__ == "__main__":
     main()
