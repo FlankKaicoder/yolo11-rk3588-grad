@@ -2,11 +2,14 @@ import argparse
 import random
 import shutil
 from pathlib import Path
+
 import pandas as pd
+
 
 def safe_copy(src, dst):
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
+
 
 def sample_rows(df, n, rng, replace=False):
     if len(df) == 0 or n <= 0:
@@ -17,6 +20,7 @@ def sample_rows(df, n, rng, replace=False):
     n = min(n, len(df))
     idxs = rng.sample(range(len(df)), n)
     return df.iloc[idxs].copy()
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -57,8 +61,8 @@ def main():
         cand_neg = v2s[(v2s["class"] == "background") & (v2s["source"] == "candidate_negative")].copy()
         hard_neg = v1s[(v1s["class"] == "background") & (v1s["source"] == "hard_false_positive")].copy()
         rand_neg_pool = v1s[
-            (v1s["class"] == "background") &
-            (v1s["source"].isin(["random_background_empty", "random_background_posimg"]))
+            (v1s["class"] == "background")
+            & (v1s["source"].isin(["random_background_empty", "random_background_posimg"]))
         ].copy()
 
         base_neg = pd.concat([cand_neg, hard_neg], ignore_index=True)
@@ -105,6 +109,7 @@ def main():
         for cls in ["missing_coating", "background"]:
             n = len(list((out_dir / split / cls).glob("*.jpg")))
             print(f"{split}/{cls}: {n}")
+
 
 if __name__ == "__main__":
     main()

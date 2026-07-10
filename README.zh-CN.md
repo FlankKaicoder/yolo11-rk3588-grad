@@ -19,28 +19,28 @@
 
 ## 自定义代码地图
 
-| 路径 | 作用 |
-| --- | --- |
-| `train.py` | YOLO11n-seg 分割 baseline 训练入口，使用旧分割数据集。 |
-| `train_3clsbaseline.py` | YOLO11n-seg 三分类分割 baseline 训练入口。 |
-| `train_yolo_seg_distill.py` | 第一版正样本 ROI 分割蒸馏训练入口。 |
-| `train_yolo_seg_fgbg_distill.py` | 第二版前景/背景 ROI 分割蒸馏训练入口。 |
-| `run_seg_distill.py` | 第一版蒸馏训练命令封装。 |
-| `inspect_seg_layers.py` | 注册 forward hook，查看 YOLO11-seg 各层输出 shape，用于选择蒸馏 hook 层。 |
-| `export_student_only_seg.py` | 从蒸馏 checkpoint 中过滤出纯 student 权重。 |
-| `distill_seg_v1(positive_ROI)/` | 第一版只使用 GT 正样本 ROI 的分割蒸馏模块。 |
-| `distill_seg_v2_fgbg/` | 第二版前景/近背景 ROI 双分支蒸馏模块。 |
-| `scripts/dataset/` | 数据清洗、类别合并、单类转换、二分类 patch 数据构造脚本。 |
-| `scripts/cls/train_patch_binary_ce.py` | defect/background 二分类 patch teacher 训练脚本。 |
-| `scripts/train_patch_*.py` | 多类 patch 分类、对比学习、长尾学习实验脚本。 |
-| `scripts/patch_resnet18_*.py` | cRT、Balanced Softmax、DCL zoom-positive 等额外表征学习尝试。 |
-| `scripts/analyze_repr_50_models.py` | 对不同 patch 模型抽特征，做线性探测、KNN、类中心距离、t-SNE 分析。 |
-| `scripts/extract_misclassified_from_report.py` | 从分类报告中抽取误分类样本并按 true->pred 分类保存。 |
-| `scripts/extract_pairwise_focus.py` | 汇总重点类别对的类中心距离。 |
-| `ultralytics/cfg/models/11/yolo11_p2*.yaml` | YOLO11 检测结构改造配置，加入 P2 分支和注意力模块。 |
-| `ultralytics/nn/modules/block.py` | 新增 ECAAttention、CBAM、SimAM 等模块实现。 |
-| `ultralytics/nn/tasks.py`、`ultralytics/nn/modules/__init__.py` | 让 YAML 中的新模块可被模型解析和构建。 |
-| `my_configs/` | 检测实验批量训练 shell 配置。 |
+| 路径                                                            | 作用                                                                      |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `train.py`                                                      | YOLO11n-seg 分割 baseline 训练入口，使用旧分割数据集。                    |
+| `train_3clsbaseline.py`                                         | YOLO11n-seg 三分类分割 baseline 训练入口。                                |
+| `train_yolo_seg_distill.py`                                     | 第一版正样本 ROI 分割蒸馏训练入口。                                       |
+| `train_yolo_seg_fgbg_distill.py`                                | 第二版前景/背景 ROI 分割蒸馏训练入口。                                    |
+| `run_seg_distill.py`                                            | 第一版蒸馏训练命令封装。                                                  |
+| `inspect_seg_layers.py`                                         | 注册 forward hook，查看 YOLO11-seg 各层输出 shape，用于选择蒸馏 hook 层。 |
+| `export_student_only_seg.py`                                    | 从蒸馏 checkpoint 中过滤出纯 student 权重。                               |
+| `distill_seg_v1(positive_ROI)/`                                 | 第一版只使用 GT 正样本 ROI 的分割蒸馏模块。                               |
+| `distill_seg_v2_fgbg/`                                          | 第二版前景/近背景 ROI 双分支蒸馏模块。                                    |
+| `scripts/dataset/`                                              | 数据清洗、类别合并、单类转换、二分类 patch 数据构造脚本。                 |
+| `scripts/cls/train_patch_binary_ce.py`                          | defect/background 二分类 patch teacher 训练脚本。                         |
+| `scripts/train_patch_*.py`                                      | 多类 patch 分类、对比学习、长尾学习实验脚本。                             |
+| `scripts/patch_resnet18_*.py`                                   | cRT、Balanced Softmax、DCL zoom-positive 等额外表征学习尝试。             |
+| `scripts/analyze_repr_50_models.py`                             | 对不同 patch 模型抽特征，做线性探测、KNN、类中心距离、t-SNE 分析。        |
+| `scripts/extract_misclassified_from_report.py`                  | 从分类报告中抽取误分类样本并按 true->pred 分类保存。                      |
+| `scripts/extract_pairwise_focus.py`                             | 汇总重点类别对的类中心距离。                                              |
+| `ultralytics/cfg/models/11/yolo11_p2*.yaml`                     | YOLO11 检测结构改造配置，加入 P2 分支和注意力模块。                       |
+| `ultralytics/nn/modules/block.py`                               | 新增 ECAAttention、CBAM、SimAM 等模块实现。                               |
+| `ultralytics/nn/tasks.py`、`ultralytics/nn/modules/__init__.py` | 让 YAML 中的新模块可被模型解析和构建。                                    |
+| `my_configs/`                                                   | 检测实验批量训练 shell 配置。                                             |
 
 ## 数据处理与数据集改造
 
@@ -88,12 +88,12 @@
 
 类别映射：
 
-| 原类别 | 新类别 |
-| --- | --- |
-| `0: missing_coating` | `0: missing` |
-| `2: missing_material` | `0: missing` |
-| `1: corrosion` | `1: corrosion` |
-| `3: carbon` | `2: carbon` |
+| 原类别                | 新类别         |
+| --------------------- | -------------- |
+| `0: missing_coating`  | `0: missing`   |
+| `2: missing_material` | `0: missing`   |
+| `1: corrosion`        | `1: corrosion` |
+| `3: carbon`           | `2: carbon`    |
 
 意义：用三分类验证“合并易混类别是否能提升稳定性”。
 
@@ -591,13 +591,13 @@ total_loss = seg_loss + lambda_dist * dist_loss * batch_size
 
 模块职责：
 
-| 文件 | 作用 |
-| --- | --- |
-| `model.py` | 包装 YOLO11-seg，注册 hook，重写 criterion，合并原始分割 loss 与蒸馏 loss。 |
+| 文件                 | 作用                                                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `model.py`           | 包装 YOLO11-seg，注册 hook，重写 criterion，合并原始分割 loss 与蒸馏 loss。                          |
 | `teacher_wrapper.py` | 定义 `BCLResNet18` 和 `BCLTeacher`，加载 patch BCL checkpoint，返回 ResNet18 avgpool 后 512 维特征。 |
-| `adapter.py` | 将 student ROI 特征映射到 teacher 特征维度。 |
-| `roi_pool.py` | 原图 crop 与特征图 ROI pooling。 |
-| `losses.py` | cosine 蒸馏损失。 |
+| `adapter.py`         | 将 student ROI 特征映射到 teacher 特征维度。                                                         |
+| `roi_pool.py`        | 原图 crop 与特征图 ROI pooling。                                                                     |
+| `losses.py`          | cosine 蒸馏损失。                                                                                    |
 
 意义：先验证“patch teacher 的缺陷语义能否迁移到 YOLO 分割中间层”。
 
@@ -815,26 +815,26 @@ patch teacher + YOLO11-seg student
 
 ## 主要算法尝试清单
 
-| 方向 | 尝试 | 代码位置 | 目的 |
-| --- | --- | --- | --- |
-| 小目标检测 | P2/4 检测分支 | `yolo11_p2.yaml` | 提升小缺陷召回。 |
-| 注意力 | ECA | `block.py`、`yolo11_eca.yaml`、`yolo11_p2_eca.yaml` | 加强通道选择。 |
-| 注意力 | CBAM | `block.py`、`yolo11_p2_cbam.yaml` | 同时建模通道和空间注意力。 |
-| 注意力 | SimAM | `block.py`、`yolo11_p2_simam.yaml` | 无参数注意力，低成本增强。 |
-| 类别重组 | 4 类转 3 类 | `make_seg_3classes_from_clean_polygon.py` | 合并易混 missing 类。 |
-| 层级检测 | 多类转单类 defect | `make_seg_1cls_defect_keep_split.py`、`make_detect_1cls_defect.py` | 先定位缺陷，再做细分。 |
-| patch 数据 | defect/background patch | `build_patch_binary_v1.py` | 训练二分类 teacher。 |
-| patch baseline | ResNet18 + CE | `train_patch_ce_fix_v1.py` | 建立公平基线。 |
-| 表征学习 | SupCon | `train_patch_supcon*.py` | 增大类间距离。 |
-| 表征学习 | YOLO SupCon | `train_yolo_supcon.py` | 验证 YOLO 分类 backbone 做 patch 表征。 |
-| 表征学习 | BCL | `train_patch_bcl*.py` | 类别均衡监督对比学习。 |
-| 表征学习 | BCL two-stage | `train_patch_bcl_2stage*.py` | 先学表征，再微调分类。 |
-| 长尾分类 | PaCo | `train_patch_paco.py` | proxy contrastive 缓解类别不均衡。 |
-| 长尾分类 | cRT + Balanced Softmax | `patch_resnet18_crt_balsoftmax.py` | 冻结表征，重训分类头。 |
-| 对比学习 | DCL + zoom-positive | `patch_resnet18_dcl_zoom_twostage.py` | 让局部缩放视角保持一致。 |
-| 分割蒸馏 | positive ROI distill | `distill_seg_v1(positive_ROI)/` | 把 patch teacher 的缺陷表征蒸馏到 YOLO。 |
-| 分割蒸馏 | FG/BG ROI distill | `distill_seg_v2_fgbg/` | 同时约束缺陷区域和近背景区域。 |
-| 部署准备 | student-only export | `export_student_only_seg.py`、`scripts/extract_student_only_from_distill_seg.py` | 剥离 teacher/adapter，保留推理模型。 |
+| 方向           | 尝试                    | 代码位置                                                                         | 目的                                     |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
+| 小目标检测     | P2/4 检测分支           | `yolo11_p2.yaml`                                                                 | 提升小缺陷召回。                         |
+| 注意力         | ECA                     | `block.py`、`yolo11_eca.yaml`、`yolo11_p2_eca.yaml`                              | 加强通道选择。                           |
+| 注意力         | CBAM                    | `block.py`、`yolo11_p2_cbam.yaml`                                                | 同时建模通道和空间注意力。               |
+| 注意力         | SimAM                   | `block.py`、`yolo11_p2_simam.yaml`                                               | 无参数注意力，低成本增强。               |
+| 类别重组       | 4 类转 3 类             | `make_seg_3classes_from_clean_polygon.py`                                        | 合并易混 missing 类。                    |
+| 层级检测       | 多类转单类 defect       | `make_seg_1cls_defect_keep_split.py`、`make_detect_1cls_defect.py`               | 先定位缺陷，再做细分。                   |
+| patch 数据     | defect/background patch | `build_patch_binary_v1.py`                                                       | 训练二分类 teacher。                     |
+| patch baseline | ResNet18 + CE           | `train_patch_ce_fix_v1.py`                                                       | 建立公平基线。                           |
+| 表征学习       | SupCon                  | `train_patch_supcon*.py`                                                         | 增大类间距离。                           |
+| 表征学习       | YOLO SupCon             | `train_yolo_supcon.py`                                                           | 验证 YOLO 分类 backbone 做 patch 表征。  |
+| 表征学习       | BCL                     | `train_patch_bcl*.py`                                                            | 类别均衡监督对比学习。                   |
+| 表征学习       | BCL two-stage           | `train_patch_bcl_2stage*.py`                                                     | 先学表征，再微调分类。                   |
+| 长尾分类       | PaCo                    | `train_patch_paco.py`                                                            | proxy contrastive 缓解类别不均衡。       |
+| 长尾分类       | cRT + Balanced Softmax  | `patch_resnet18_crt_balsoftmax.py`                                               | 冻结表征，重训分类头。                   |
+| 对比学习       | DCL + zoom-positive     | `patch_resnet18_dcl_zoom_twostage.py`                                            | 让局部缩放视角保持一致。                 |
+| 分割蒸馏       | positive ROI distill    | `distill_seg_v1(positive_ROI)/`                                                  | 把 patch teacher 的缺陷表征蒸馏到 YOLO。 |
+| 分割蒸馏       | FG/BG ROI distill       | `distill_seg_v2_fgbg/`                                                           | 同时约束缺陷区域和近背景区域。           |
+| 部署准备       | student-only export     | `export_student_only_seg.py`、`scripts/extract_student_only_from_distill_seg.py` | 剥离 teacher/adapter，保留推理模型。     |
 
 ## 复现实验建议顺序
 
@@ -877,11 +877,11 @@ python scripts/cls/train_patch_binary_ce.py --data-root <patch_binary_dataset> -
 ```bash
 python train_yolo_seg_fgbg_distill.py \
   --seg-model yolo11n-seg.pt \
-  --data <seg_data.yaml> \
-  --teacher-ckpt <binary_teacher_best_macro_f1.pth> \
-  --hook-idx 13 \
+  --data \
+  \
+  13 \
   --lambda-pos 0.1 \
-  --lambda-neg 0.1
+  --lambda-neg 0.1 < seg_data.yaml > --teacher-ckpt < binary_teacher_best_macro_f1.pth > --hook-idx
 ```
 
 7. 导出 student-only：
@@ -905,7 +905,7 @@ python export_student_only_seg.py \
 - 历史文件中部分中文注释出现乱码，但代码结构和变量名仍能表达主要意图；本 README 已按 UTF-8 中文重新整理。
 - 当前 README 记录的是“尝试过的代码方案”，不等价于最终实验结论；最终结论应结合 `runs/` 下指标、混淆矩阵、表征分析结果再写入论文。
 
-## 
+##
 
 可以将本项目的改进概括为三个层次：
 
