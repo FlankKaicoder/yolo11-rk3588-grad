@@ -1,18 +1,17 @@
+from __future__ import annotations
+
 import random
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
-from PIL import Image
-
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader, Sampler
-from torchvision import datasets, transforms, models
+import torch.optim as optim
 from sklearn.metrics import classification_report, confusion_matrix, f1_score
-
+from torch.utils.data import DataLoader, Dataset, Sampler
+from torchvision import datasets, models, transforms
 
 # =========================
 # Config
@@ -55,6 +54,7 @@ USE_ALL_CLASSES_PER_BATCH = True  # current dataset has 4 classes; use all 4 in 
 # Utilities
 # =========================
 
+
 def set_seed(seed: int = 42):
     random.seed(seed)
     np.random.seed(seed)
@@ -89,11 +89,11 @@ class ContrastiveImageFolder(Dataset):
 
 
 class BalancedBatchSampler(Sampler):
+    """Build batches with n_classes_per_batch classes and n_samples_per_class samples. Uses replacement when a class has
+    insufficient remaining samples.
     """
-    Build batches with n_classes_per_batch classes and n_samples_per_class samples.
-    Uses replacement when a class has insufficient remaining samples.
-    """
-    def __init__(self, labels, batch_size: int, n_classes_per_batch: int = None):
+
+    def __init__(self, labels, batch_size: int, n_classes_per_batch: int | None = None):
         self.labels = np.array(labels)
         self.unique_classes = sorted(np.unique(self.labels).tolist())
         self.n_classes = len(self.unique_classes)
@@ -105,9 +105,7 @@ class BalancedBatchSampler(Sampler):
                 f"BATCH_SIZE={self.batch_size} must be divisible by n_classes_per_batch={self.n_classes_per_batch}"
             )
         self.n_samples_per_class = self.batch_size // self.n_classes_per_batch
-        self.class_to_indices = {
-            c: np.where(self.labels == c)[0].tolist() for c in self.unique_classes
-        }
+        self.class_to_indices = {c: np.where(self.labels == c)[0].tolist() for c in self.unique_classes}
         self.num_batches = max(1, len(labels) // self.batch_size)
 
     def __iter__(self):
@@ -132,35 +130,38 @@ class BalancedBatchSampler(Sampler):
 # Transforms
 # =========================
 
+
 def build_transforms():
     # Keep weak view mild, because patches are already local
-    weak_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomApply([
-            transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.05, hue=0.02)
-        ], p=0.5),
-        transforms.ToTensor(),
-    ])
+    weak_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomApply(
+                [transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.05, hue=0.02)], p=0.5
+            ),
+            transforms.ToTensor(),
+        ]
+    )
 
     # Zoom-positive view inspired by Learn From Zoom: slightly tighter crop around local region
-    zoom_tf = transforms.Compose([
-        transforms.RandomResizedCrop(
-            IMG_SIZE,
-            scale=(0.70, 1.0),
-            ratio=(0.9, 1.1)
-        ),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomApply([
-            transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.05, hue=0.02)
-        ], p=0.5),
-        transforms.ToTensor(),
-    ])
+    zoom_tf = transforms.Compose(
+        [
+            transforms.RandomResizedCrop(IMG_SIZE, scale=(0.70, 1.0), ratio=(0.9, 1.1)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomApply(
+                [transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.05, hue=0.02)], p=0.5
+            ),
+            transforms.ToTensor(),
+        ]
+    )
 
-    eval_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-    ])
+    eval_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+        ]
+    )
     return weak_tf, zoom_tf, eval_tf
 
 
@@ -201,11 +202,10 @@ class ResNet18DCL(nn.Module):
 # Loss: Supervised DCL
 # =========================
 class SupervisedDCLLoss(nn.Module):
+    """Simple supervised decoupled contrastive loss. For each anchor, all same-label samples (except self) are
+    positives. Denominator contains only negatives, decoupled from positives.
     """
-    Simple supervised decoupled contrastive loss.
-    For each anchor, all same-label samples (except self) are positives.
-    Denominator contains only negatives, decoupled from positives.
-    """
+
     def __init__(self, temperature: float = 0.1):
         super().__init__()
         self.temperature = temperature
@@ -269,6 +269,7 @@ def train_stage1(model, loader, criterion, optimizer):
 # =========================
 # Stage 2/3: Classification
 # =========================
+
 
 def train_one_epoch_ce(model, loader, criterion, optimizer):
     model.train()
@@ -417,10 +418,13 @@ def main():
         train_loss = train_stage1(model, stage1_loader, dcl_criterion, optimizer_stage1)
         print(f"[Stage1][Epoch {epoch + 1:03d}/{STAGE1_EPOCHS}] DCL Loss {train_loss:.4f}")
 
-    torch.save({
-        "model_state_dict": model.state_dict(),
-        "classes": class_names,
-    }, STAGE1_PATH)
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "classes": class_names,
+        },
+        STAGE1_PATH,
+    )
     print(f"Saved Stage1 checkpoint to: {STAGE1_PATH}")
 
     print("\n===== Stage 2: freeze encoder, linear probe with CE =====")
@@ -449,12 +453,15 @@ def main():
 
         if val_metrics["macro_f1"] > best_stage2_f1:
             best_stage2_f1 = val_metrics["macro_f1"]
-            torch.save({
-                "epoch": epoch + 1,
-                "model_state_dict": model.state_dict(),
-                "best_val_macro_f1": best_stage2_f1,
-                "classes": class_names,
-            }, STAGE2_PATH)
+            torch.save(
+                {
+                    "epoch": epoch + 1,
+                    "model_state_dict": model.state_dict(),
+                    "best_val_macro_f1": best_stage2_f1,
+                    "classes": class_names,
+                },
+                STAGE2_PATH,
+            )
             print(f"Saved Stage2 best to: {STAGE2_PATH}")
 
     print(f"\n[Stage2] Best Val Macro-F1: {best_stage2_f1:.4f}")
@@ -473,10 +480,12 @@ def main():
         for p in model.classifier.parameters():
             p.requires_grad = True
 
-        optimizer_stage3 = optim.AdamW([
-            {"params": model.encoder.layer4.parameters(), "lr": STAGE3_BACKBONE_LR},
-            {"params": model.classifier.parameters(), "lr": STAGE3_FC_LR},
-        ])
+        optimizer_stage3 = optim.AdamW(
+            [
+                {"params": model.encoder.layer4.parameters(), "lr": STAGE3_BACKBONE_LR},
+                {"params": model.classifier.parameters(), "lr": STAGE3_FC_LR},
+            ]
+        )
 
         best_stage3_f1 = ckpt["best_val_macro_f1"]
 
@@ -493,12 +502,15 @@ def main():
 
             if val_metrics["macro_f1"] > best_stage3_f1:
                 best_stage3_f1 = val_metrics["macro_f1"]
-                torch.save({
-                    "epoch": epoch + 1,
-                    "model_state_dict": model.state_dict(),
-                    "best_val_macro_f1": best_stage3_f1,
-                    "classes": class_names,
-                }, STAGE3_PATH)
+                torch.save(
+                    {
+                        "epoch": epoch + 1,
+                        "model_state_dict": model.state_dict(),
+                        "best_val_macro_f1": best_stage3_f1,
+                        "classes": class_names,
+                    },
+                    STAGE3_PATH,
+                )
                 print(f"Saved Stage3 best to: {STAGE3_PATH}")
 
         final_path = STAGE3_PATH if STAGE3_PATH.exists() else STAGE2_PATH
