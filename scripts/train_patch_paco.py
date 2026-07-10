@@ -1,14 +1,14 @@
 import os
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader, WeightedRandomSampler
-from torchvision import datasets, transforms, models
 from sklearn.metrics import classification_report, confusion_matrix
+from torch.utils.data import DataLoader, WeightedRandomSampler
+from torchvision import datasets, models, transforms
 
 # =========================
 # 路径
@@ -83,11 +83,7 @@ class PaCoResNet18(nn.Module):
         backbone.fc = nn.Identity()
         self.encoder = backbone
 
-        self.projector = nn.Sequential(
-            nn.Linear(in_features, 512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, feat_dim)
-        )
+        self.projector = nn.Sequential(nn.Linear(in_features, 512), nn.ReLU(inplace=True), nn.Linear(512, feat_dim))
 
         self.classifier = nn.Linear(in_features, num_classes)
 
@@ -105,18 +101,22 @@ class PaCoResNet18(nn.Module):
 
 
 def build_transforms():
-    train_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.2),
-        transforms.RandomRotation(3),
-        transforms.ToTensor(),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.RandomRotation(3),
+            transforms.ToTensor(),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+        ]
+    )
 
     return train_tf, val_tf
 
@@ -137,18 +137,13 @@ def build_weighted_sampler(samples):
         print(f"class_idx={cls_idx}, count={cnt}")
 
     sample_weights = [1.0 / class_count[label] for label in labels]
-    sampler = WeightedRandomSampler(
-        weights=sample_weights,
-        num_samples=len(sample_weights),
-        replacement=True
-    )
+    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
     return sampler
 
 
 def get_class_balanced_weights(class_counts, beta=0.999):
     effective_num = 1.0 - torch.pow(
-        torch.tensor(beta, dtype=torch.float32),
-        torch.tensor(class_counts, dtype=torch.float32)
+        torch.tensor(beta, dtype=torch.float32), torch.tensor(class_counts, dtype=torch.float32)
     )
     weights = (1.0 - beta) / (effective_num + 1e-12)
     weights = weights / weights.sum() * len(class_counts)
@@ -156,12 +151,9 @@ def get_class_balanced_weights(class_counts, beta=0.999):
 
 
 class PaCoProxyLoss(nn.Module):
+    """工程可落地的PaCo风格近似版： - 样本embedding与类proxy做对比 - 正类proxy拉近，负类proxy拉远 - 使用class-balanced权重提升尾部类贡献.
     """
-    工程可落地的PaCo风格近似版：
-    - 样本embedding与类proxy做对比
-    - 正类proxy拉近，负类proxy拉远
-    - 使用class-balanced权重提升尾部类贡献
-    """
+
     def __init__(self, class_counts, temperature=0.07, beta=0.999):
         super().__init__()
         self.temperature = temperature
@@ -169,10 +161,7 @@ class PaCoProxyLoss(nn.Module):
         self.register_buffer("class_weights", class_weights)
 
     def forward(self, features, labels, proxies):
-        """
-        features: [bsz, feat_dim]
-        labels: [bsz]
-        proxies: [num_classes, feat_dim]
+        """features: [bsz, feat_dim] labels: [bsz] proxies: [num_classes, feat_dim].
         """
         features = F.normalize(features, dim=1)
         proxies = F.normalize(proxies, dim=1)
@@ -183,7 +172,7 @@ class PaCoProxyLoss(nn.Module):
         sample_weights = self.class_weights[labels]
         pos_log_prob = log_prob[torch.arange(labels.size(0), device=labels.device), labels]
 
-        loss = - sample_weights * pos_log_prob
+        loss = -sample_weights * pos_log_prob
         return loss.mean()
 
 
@@ -204,10 +193,7 @@ def train_one_epoch(model, loader, ce_criterion, paco_criterion, optimizer):
         _, proj2, logits2, proxies = model(x2)
 
         ce_loss = 0.5 * (ce_criterion(logits1, labels) + ce_criterion(logits2, labels))
-        paco_loss = 0.5 * (
-            paco_criterion(proj1, labels, proxies) +
-            paco_criterion(proj2, labels, proxies)
-        )
+        paco_loss = 0.5 * (paco_criterion(proj1, labels, proxies) + paco_criterion(proj2, labels, proxies))
 
         loss = LAMBDA_CE * ce_loss + LAMBDA_PACO * paco_loss
         loss.backward()
@@ -266,7 +252,7 @@ def main():
     print("Val classes:", val_dataset.classes)
 
     num_classes = len(train_dataset.classes)
-    class_counts, counter = get_class_counts_from_samples(train_dataset.samples, num_classes)
+    class_counts, _counter = get_class_counts_from_samples(train_dataset.samples, num_classes)
     print("Train class counts:", class_counts)
 
     sampler = build_weighted_sampler(train_dataset.samples)
@@ -275,19 +261,10 @@ def main():
     print("Class-balanced CE weights:", class_weights)
 
     train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        sampler=sampler,
-        num_workers=NUM_WORKERS,
-        drop_last=True
+        train_dataset, batch_size=BATCH_SIZE, sampler=sampler, num_workers=NUM_WORKERS, drop_last=True
     )
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS
-    )
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     model = PaCoResNet18(num_classes=num_classes, feat_dim=FEAT_DIM).to(DEVICE)
     ce_criterion = nn.CrossEntropyLoss(weight=class_weights)
@@ -301,7 +278,7 @@ def main():
         train_loss, train_acc = train_one_epoch(model, train_loader, ce_criterion, paco_criterion, optimizer)
         val_loss, val_acc = evaluate(model, val_loader, ce_criterion, train_dataset.classes)
 
-        print(f"\nEpoch [{epoch+1}/{EPOCHS}]")
+        print(f"\nEpoch [{epoch + 1}/{EPOCHS}]")
         print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
         print(f"Val   Loss: {val_loss:.4f}, Val   Acc: {val_acc:.4f}")
 
