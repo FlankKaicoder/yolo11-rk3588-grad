@@ -1,5 +1,6 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 import yaml
 
 # 原始四分类检测数据集
@@ -10,6 +11,7 @@ DST_ROOT = Path("/root/autodl-tmp/yolo11-rk3588-grad/datasets/datasets_detect_1c
 
 SPLITS = ["train", "val", "test"]
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+
 
 def copy_images(split: str):
     src_img_dir = SRC_ROOT / "images" / split
@@ -34,6 +36,7 @@ def copy_images(split: str):
 
     print(f"[OK] copy images/{split}: {count} images")
 
+
 def convert_labels(split: str):
     src_label_dir = SRC_ROOT / "labels" / split
     dst_label_dir = DST_ROOT / "labels" / split
@@ -55,7 +58,7 @@ def convert_labels(split: str):
 
         new_lines = []
 
-        with open(label_path, "r", encoding="utf-8") as f:
+        with open(label_path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -84,10 +87,9 @@ def convert_labels(split: str):
 
     print(f"[OK] convert labels/{split}: {count_files} txt files, {count_objs} objects")
 
+
 def create_empty_labels_for_images(split: str):
-    """
-    如果有图片没有对应 label，则创建空 txt。
-    对负样本图很重要。
+    """如果有图片没有对应 label，则创建空 txt。 对负样本图很重要。.
     """
     img_dir = DST_ROOT / "images" / split
     label_dir = DST_ROOT / "labels" / split
@@ -111,15 +113,14 @@ def create_empty_labels_for_images(split: str):
 
     print(f"[OK] create empty labels/{split}: {created} empty txt files")
 
+
 def write_yaml():
     data = {
         "path": str(DST_ROOT),
         "train": "images/train",
         "val": "images/val",
         "test": "images/test",
-        "names": {
-            0: "defect"
-        }
+        "names": {0: "defect"},
     }
 
     yaml_path = DST_ROOT / "data.yaml"
@@ -129,6 +130,7 @@ def write_yaml():
         yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
 
     print(f"[OK] write yaml: {yaml_path}")
+
 
 def main():
     print(f"[INFO] src: {SRC_ROOT}")
@@ -149,6 +151,7 @@ def main():
 
     print("\n[DONE] 单类 defect 检测数据集已生成")
     print(f"YAML: {DST_ROOT / 'data.yaml'}")
+
 
 if __name__ == "__main__":
     main()

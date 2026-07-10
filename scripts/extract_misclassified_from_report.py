@@ -1,13 +1,14 @@
-import json
 import csv
+import json
 import shutil
 from pathlib import Path
 
-
 # ========= 修改这里 =========
-REPORT_JSON =Path("/root/autodl-tmp/yolo11-rk3588-grad/runs/patch_cls/patch_bcl_resnet18_fix_nosampler_ce_v1/reports/epoch_034_report.json")
+REPORT_JSON = Path(
+    "/root/autodl-tmp/yolo11-rk3588-grad/runs/patch_cls/patch_bcl_resnet18_fix_nosampler_ce_v1/reports/epoch_034_report.json"
+)
 OUT_DIR = Path("/root/autodl-tmp/yolo11-rk3588-grad/runs/error_analysis/singlebcl_epoch_034_miscls")
-COPY_MODE = "copy"   # "copy" 或 "symlink"
+COPY_MODE = "copy"  # "copy" 或 "symlink"
 # ==========================
 
 
@@ -27,7 +28,7 @@ def safe_symlink(src: Path, dst: Path):
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    with open(REPORT_JSON, "r", encoding="utf-8") as f:
+    with open(REPORT_JSON, encoding="utf-8") as f:
         data = json.load(f)
 
     class_names = get_class_names(data)
@@ -49,37 +50,50 @@ def main():
         img_path = Path(s["path"])
         probs = s["probs"]
 
-        misclassified.append({
-            "path": str(img_path),
-            "filename": img_path.name,
-            "true_idx": y_true,
-            "pred_idx": y_pred,
-            "true_name": true_name,
-            "pred_name": pred_name,
-            "pred_prob": probs[y_pred],
-            "true_prob": probs[y_true],
-            "all_probs": probs,
-        })
+        misclassified.append(
+            {
+                "path": str(img_path),
+                "filename": img_path.name,
+                "true_idx": y_true,
+                "pred_idx": y_pred,
+                "true_name": true_name,
+                "pred_name": pred_name,
+                "pred_prob": probs[y_pred],
+                "true_prob": probs[y_true],
+                "all_probs": probs,
+            }
+        )
 
     # 保存 csv
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
-        writer.writerow([
-            "filename", "path",
-            "true_idx", "true_name",
-            "pred_idx", "pred_name",
-            "pred_prob", "true_prob",
-            "all_probs"
-        ])
+        writer.writerow(
+            [
+                "filename",
+                "path",
+                "true_idx",
+                "true_name",
+                "pred_idx",
+                "pred_name",
+                "pred_prob",
+                "true_prob",
+                "all_probs",
+            ]
+        )
         for m in misclassified:
-            writer.writerow([
-                m["filename"], m["path"],
-                m["true_idx"], m["true_name"],
-                m["pred_idx"], m["pred_name"],
-                f"{m['pred_prob']:.6f}",
-                f"{m['true_prob']:.6f}",
-                m["all_probs"]
-            ])
+            writer.writerow(
+                [
+                    m["filename"],
+                    m["path"],
+                    m["true_idx"],
+                    m["true_name"],
+                    m["pred_idx"],
+                    m["pred_name"],
+                    f"{m['pred_prob']:.6f}",
+                    f"{m['true_prob']:.6f}",
+                    m["all_probs"],
+                ]
+            )
 
     # 按 true->pred 分目录整理图像
     pair_count = {}
@@ -113,7 +127,7 @@ def main():
         for k, v in sorted(pair_count.items(), key=lambda x: (-x[1], x[0])):
             f.write(f"{k}: {v}\n")
 
-    print(f"Done.")
+    print("Done.")
     print(f"Output dir: {OUT_DIR}")
     print(f"CSV saved to: {csv_path}")
     print(f"Summary saved to: {summary_path}")

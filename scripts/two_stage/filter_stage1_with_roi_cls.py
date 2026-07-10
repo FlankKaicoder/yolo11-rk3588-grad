@@ -4,10 +4,11 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import models, transforms
 from PIL import Image
+from torchvision import models, transforms
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"}
+
 
 def parse_pred_line(line):
     vals = list(map(float, line.strip().split()))
@@ -39,6 +40,7 @@ def parse_pred_line(line):
         "line": line.strip(),
     }
 
+
 def expand_to_square_pixel(bbox_n, w, h, expand=1.4):
     x1, y1, x2, y2 = bbox_n
     x1, x2 = x1 * w, x2 * w
@@ -50,10 +52,10 @@ def expand_to_square_pixel(bbox_n, w, h, expand=1.4):
     bh = max(2.0, y2 - y1)
     side = max(bw, bh) * expand
 
-    nx1 = int(round(cx - side / 2))
-    ny1 = int(round(cy - side / 2))
-    nx2 = int(round(cx + side / 2))
-    ny2 = int(round(cy + side / 2))
+    nx1 = round(cx - side / 2)
+    ny1 = round(cy - side / 2)
+    nx2 = round(cx + side / 2)
+    ny2 = round(cy + side / 2)
 
     nx1 = max(0, nx1)
     ny1 = max(0, ny1)
@@ -64,6 +66,7 @@ def expand_to_square_pixel(bbox_n, w, h, expand=1.4):
         return None
 
     return nx1, ny1, nx2, ny2
+
 
 def load_model(ckpt_path, device):
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
@@ -84,6 +87,7 @@ def load_model(ckpt_path, device):
 
     return model, pos_idx
 
+
 def count_instances(label_path):
     if not label_path.exists():
         return 0
@@ -92,6 +96,7 @@ def count_instances(label_path):
         return 0
     return len([x for x in txt.splitlines() if x.strip()])
 
+
 @torch.no_grad()
 def score_crop(model, pos_idx, crop, tfm, device):
     x = tfm(crop).unsqueeze(0).to(device)
@@ -99,16 +104,18 @@ def score_crop(model, pos_idx, crop, tfm, device):
     prob = F.softmax(logits, dim=1)[0, pos_idx].item()
     return prob
 
+
 def filter_one_split(args):
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     model, pos_idx = load_model(args.ckpt, device)
 
-    tfm = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
-    ])
+    tfm = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
     img_dir = Path(args.img_dir)
     pred_dir = Path(args.pred_dir)
@@ -186,6 +193,7 @@ def filter_one_split(args):
         s = stats[th]
         print(f"threshold={th:.2f} in={s['in']} keep={s['keep']} drop={s['drop']} pred_files={s['files']}")
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--img-dir", required=True)
@@ -198,6 +206,7 @@ def main():
     args = ap.parse_args()
 
     filter_one_split(args)
+
 
 if __name__ == "__main__":
     main()
