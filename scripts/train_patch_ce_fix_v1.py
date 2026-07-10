@@ -1,20 +1,18 @@
-import os
 import csv
 import json
-import time
-import random
 import logging
-from pathlib import Path
+import random
+import time
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms, models
 from sklearn.metrics import classification_report, confusion_matrix
-
+from torch.utils.data import DataLoader
+from torchvision import datasets, models, transforms
 
 # =========================
 # 基础配置
@@ -88,20 +86,24 @@ def build_transforms():
     imagenet_mean = [0.485, 0.456, 0.406]
     imagenet_std = [0.229, 0.224, 0.225]
 
-    train_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.2),
-        transforms.RandomRotation(3),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.RandomRotation(3),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+        ]
+    )
 
     return train_tf, val_tf
 
@@ -164,7 +166,7 @@ def save_config():
         "train_dir": str(TRAIN_DIR),
         "val_dir": str(VAL_DIR),
         "device": str(DEVICE),
-        "note": "CE-only baseline under the same fixed pipeline as the repaired BCL. No sampler, no class-balanced CE."
+        "note": "CE-only baseline under the same fixed pipeline as the repaired BCL. No sampler, no class-balanced CE.",
     }
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
@@ -173,25 +175,27 @@ def save_config():
 def init_csv():
     with open(CSV_LOG_PATH, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow([
-            "epoch",
-            "train_loss",
-            "train_acc",
-            "val_loss",
-            "val_acc",
-            "macro_precision",
-            "macro_recall",
-            "macro_f1",
-            "weighted_f1",
-            "carbon_recall",
-            "corrosion_recall",
-            "missing_coating_recall",
-            "missing_material_recall",
-            "carbon_f1",
-            "corrosion_f1",
-            "missing_coating_f1",
-            "missing_material_f1"
-        ])
+        writer.writerow(
+            [
+                "epoch",
+                "train_loss",
+                "train_acc",
+                "val_loss",
+                "val_acc",
+                "macro_precision",
+                "macro_recall",
+                "macro_f1",
+                "weighted_f1",
+                "carbon_recall",
+                "corrosion_recall",
+                "missing_coating_recall",
+                "missing_material_recall",
+                "carbon_f1",
+                "corrosion_f1",
+                "missing_coating_f1",
+                "missing_material_f1",
+            ]
+        )
 
 
 def append_csv(row):
@@ -255,12 +259,7 @@ def evaluate(model, loader, criterion, class_names, epoch):
         all_paths.extend(list(paths))
 
     report_dict = classification_report(
-        all_labels,
-        all_preds,
-        target_names=class_names,
-        digits=4,
-        output_dict=True,
-        zero_division=0
+        all_labels, all_preds, target_names=class_names, digits=4, output_dict=True, zero_division=0
     )
     cm = confusion_matrix(all_labels, all_preds)
 
@@ -269,14 +268,9 @@ def evaluate(model, loader, criterion, class_names, epoch):
         "classification_report": report_dict,
         "confusion_matrix": cm.tolist(),
         "samples": [
-            {
-                "path": p,
-                "y_true": int(y),
-                "y_pred": int(pred),
-                "probs": [float(x) for x in prob]
-            }
+            {"path": p, "y_true": int(y), "y_pred": int(pred), "probs": [float(x) for x in prob]}
             for p, y, pred, prob in zip(all_paths, all_labels, all_preds, all_probs)
-        ]
+        ],
     }
 
     with open(REPORT_DIR / f"epoch_{epoch:03d}_report.json", "w", encoding="utf-8") as f:
@@ -344,20 +338,10 @@ def main():
 
     # 为了和修正版 BCL 公平比较，这里故意不用 WeightedRandomSampler
     train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=NUM_WORKERS,
-        pin_memory=True
+        train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True
     )
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS,
-        pin_memory=True
-    )
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
     model = build_model(num_classes=num_classes).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
@@ -385,25 +369,27 @@ def main():
         c_recall, cor_recall, mc_recall, mm_recall = metrics["per_class_recall"]
         c_f1, cor_f1, mc_f1, mm_f1 = metrics["per_class_f1"]
 
-        append_csv([
-            epoch,
-            train_loss,
-            train_acc,
-            val_loss,
-            val_acc,
-            macro_precision,
-            macro_recall,
-            macro_f1,
-            weighted_f1,
-            c_recall,
-            cor_recall,
-            mc_recall,
-            mm_recall,
-            c_f1,
-            cor_f1,
-            mc_f1,
-            mm_f1
-        ])
+        append_csv(
+            [
+                epoch,
+                train_loss,
+                train_acc,
+                val_loss,
+                val_acc,
+                macro_precision,
+                macro_recall,
+                macro_f1,
+                weighted_f1,
+                c_recall,
+                cor_recall,
+                mc_recall,
+                mm_recall,
+                c_f1,
+                cor_f1,
+                mc_f1,
+                mm_f1,
+            ]
+        )
 
         logger.info(
             f"Epoch [{epoch}/{EPOCHS}] | "
@@ -443,8 +429,7 @@ def main():
 
         if no_improve >= PATIENCE:
             logger.info(
-                f"Early stopping triggered. Best Val Acc: {best_val_acc:.4f}, "
-                f"Best Macro F1: {best_macro_f1:.4f}"
+                f"Early stopping triggered. Best Val Acc: {best_val_acc:.4f}, Best Macro F1: {best_macro_f1:.4f}"
             )
             break
 
