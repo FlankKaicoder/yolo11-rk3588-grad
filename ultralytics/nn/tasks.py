@@ -20,14 +20,12 @@ from ultralytics.nn.modules import (
     C3TR,
     CBAM,
     ELAN1,
-    ECAAttention,
     OBB,
     OBB26,
     PSA,
     SPP,
     SPPELAN,
     SPPF,
-    SimAM,
     A2C2f,
     AConv,
     ADown,
@@ -50,6 +48,7 @@ from ultralytics.nn.modules import (
     Detect,
     DWConv,
     DWConvTranspose2d,
+    ECAAttention,
     Focus,
     GhostBottleneck,
     GhostConv,
@@ -69,6 +68,7 @@ from ultralytics.nn.modules import (
     SCDown,
     Segment,
     Segment26,
+    SimAM,
     TorchVision,
     WorldDetect,
     YOLOEDetect,
@@ -1682,11 +1682,11 @@ def parse_model(d, ch, verbose=True):
         elif m is CBAM:
             c1 = ch[f]
             c2 = c1
-            args = [c1,*args]
+            args = [c1, *args]
         elif m is SimAM:
             c1 = ch[f]
             c2 = c1
-            args = [c1,*args]
+            args = [c1, *args]
         elif m is ResNetLayer:
             c2 = args[1] if args[3] else args[1] * 4
         elif m is torch.nn.BatchNorm2d:
