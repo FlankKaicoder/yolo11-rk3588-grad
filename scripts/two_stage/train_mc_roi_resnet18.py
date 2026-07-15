@@ -5,7 +5,8 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchvision import datasets, transforms, models
+from torchvision import datasets, models, transforms
+
 
 def compute_metrics(y_true, y_pred, pos_idx):
     tp = fp = tn = fn = 0
@@ -35,6 +36,7 @@ def compute_metrics(y_true, y_pred, pos_idx):
         "fn": fn,
     }
 
+
 def try_make_resnet18(pretrained):
     if pretrained:
         try:
@@ -46,6 +48,7 @@ def try_make_resnet18(pretrained):
             print("[WARN] pretrained failed, fallback to weights=None:", e)
 
     return models.resnet18(weights=None)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -64,23 +67,25 @@ def main():
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    train_tf = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ColorJitter(brightness=0.20, contrast=0.20, saturation=0.10, hue=0.03),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ColorJitter(brightness=0.20, contrast=0.20, saturation=0.10, hue=0.03),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
     train_set = datasets.ImageFolder(str(Path(args.data_dir) / "train"), transform=train_tf)
     val_set = datasets.ImageFolder(str(Path(args.data_dir) / "val"), transform=val_tf)
@@ -215,6 +220,7 @@ def main():
 
     print("[DONE] best_f1:", best_f1)
     print("[DONE] best_path:", best_path)
+
 
 if __name__ == "__main__":
     main()

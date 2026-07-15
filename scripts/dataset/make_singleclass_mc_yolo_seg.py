@@ -18,7 +18,7 @@ def load_names(data_yaml: Path):
     if yaml is None:
         raise RuntimeError("需要安装 pyyaml：pip install pyyaml")
 
-    with open(data_yaml, "r", encoding="utf-8") as f:
+    with open(data_yaml, encoding="utf-8") as f:
         data = yaml.safe_load(f)
 
     names = data.get("names", None)
@@ -42,17 +42,13 @@ def find_target_id(src_root: Path, target_name: str, target_id):
     names = load_names(data_yaml)
 
     if names is None:
-        raise RuntimeError(
-            "没有在 data.yaml 中找到 names，请手动指定 --target-id"
-        )
+        raise RuntimeError("没有在 data.yaml 中找到 names，请手动指定 --target-id")
 
     for k, v in names.items():
         if str(v) == target_name:
             return int(k)
 
-    raise RuntimeError(
-        f"没有在 {data_yaml} 中找到类别名 {target_name}，当前 names={names}"
-    )
+    raise RuntimeError(f"没有在 {data_yaml} 中找到类别名 {target_name}，当前 names={names}")
 
 
 def get_image_dir(src_root: Path, split: str):
@@ -87,7 +83,7 @@ def convert_split(src_root: Path, dst_root: Path, split: str, target_id: int):
 
     if src_lbl_dir is None:
         print(f"[警告] 没找到 {split} 标签目录，将全部视作负样本")
-    
+
     dst_img_dir = dst_root / "images" / split
     dst_lbl_dir = dst_root / "labels" / split
     dst_img_dir.mkdir(parents=True, exist_ok=True)
@@ -116,7 +112,7 @@ def convert_split(src_root: Path, dst_root: Path, split: str, target_id: int):
         new_lines = []
 
         if src_lbl_path is not None:
-            with open(src_lbl_path, "r", encoding="utf-8") as f:
+            with open(src_lbl_path, encoding="utf-8") as f:
                 lines = f.readlines()
 
             for line in lines:

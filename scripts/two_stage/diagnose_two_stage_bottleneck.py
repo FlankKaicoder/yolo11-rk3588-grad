@@ -1,10 +1,12 @@
 import argparse
 import csv
 from pathlib import Path
+
 import numpy as np
 from PIL import Image, ImageDraw
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"}
+
 
 def parse_label(path, has_conf):
     items = []
@@ -29,13 +31,16 @@ def parse_label(path, has_conf):
 
         pts = list(zip(coords[0::2], coords[1::2]))
         if len(pts) >= 3:
-            items.append({
-                "conf": conf,
-                "pts": pts,
-                "line": line.strip(),
-            })
+            items.append(
+                {
+                    "conf": conf,
+                    "pts": pts,
+                    "line": line.strip(),
+                }
+            )
 
     return items
+
 
 def raster_poly(pts_norm, cw, ch):
     mask = Image.new("L", (cw, ch), 0)
@@ -43,8 +48,8 @@ def raster_poly(pts_norm, cw, ch):
 
     pts = []
     for x, y in pts_norm:
-        px = int(round(x * cw))
-        py = int(round(y * ch))
+        px = round(x * cw)
+        py = round(y * ch)
         px = max(0, min(cw - 1, px))
         py = max(0, min(ch - 1, py))
         pts.append((px, py))
@@ -54,12 +59,14 @@ def raster_poly(pts_norm, cw, ch):
 
     return np.array(mask, dtype=bool)
 
+
 def mask_iou(a, b):
     inter = np.logical_and(a, b).sum()
     union = np.logical_or(a, b).sum()
     if union <= 0:
         return 0.0
     return float(inter / union)
+
 
 def write_csv(rows, path):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -71,16 +78,18 @@ def write_csv(rows, path):
         writer.writeheader()
         writer.writerows(rows)
 
+
 def canvas_size(img_path, raster_long):
     img = Image.open(img_path)
     w, h = img.size
     if w >= h:
         cw = raster_long
-        ch = max(1, int(round(h / w * raster_long)))
+        ch = max(1, round(h / w * raster_long))
     else:
         ch = raster_long
-        cw = max(1, int(round(w / h * raster_long)))
+        cw = max(1, round(w / h * raster_long))
     return cw, ch
+
 
 def analyze_upper_bound(img_dir, gt_dir, pred_root, split, confs, out_dir, raster_long):
     upper_rows = []
@@ -116,37 +125,42 @@ def analyze_upper_bound(img_dir, gt_dir, pred_root, split, confs, out_dir, raste
                         best_conf = pred_items[pi]["conf"]
                         best_pi = pi
 
-                upper_rows.append({
-                    "split": split,
-                    "stage1_conf": conf,
-                    "image": img_path.name,
-                    "gt_index": gi,
-                    "num_gt": len(gt_masks),
-                    "num_pred": len(pred_masks),
-                    "best_iou": best_iou,
-                    "best_conf": best_conf,
-                    "best_pred_index": best_pi,
-                    "covered_iou030": int(best_iou >= 0.30),
-                    "covered_iou050": int(best_iou >= 0.50),
-                    "covered_iou075": int(best_iou >= 0.75),
-                })
+                upper_rows.append(
+                    {
+                        "split": split,
+                        "stage1_conf": conf,
+                        "image": img_path.name,
+                        "gt_index": gi,
+                        "num_gt": len(gt_masks),
+                        "num_pred": len(pred_masks),
+                        "best_iou": best_iou,
+                        "best_conf": best_conf,
+                        "best_pred_index": best_pi,
+                        "covered_iou030": int(best_iou >= 0.30),
+                        "covered_iou050": int(best_iou >= 0.50),
+                        "covered_iou075": int(best_iou >= 0.75),
+                    }
+                )
 
     # summary
     import pandas as pd
+
     df = pd.DataFrame(upper_rows)
     if len(df):
         for conf, g in df.groupby("stage1_conf"):
-            summary_rows.append({
-                "split": split,
-                "stage1_conf": conf,
-                "gt_instances": len(g),
-                "candidate_recall_iou030": g["covered_iou030"].mean(),
-                "candidate_recall_iou050": g["covered_iou050"].mean(),
-                "candidate_recall_iou075": g["covered_iou075"].mean(),
-                "mean_best_iou": g["best_iou"].mean(),
-                "median_best_iou": g["best_iou"].median(),
-                "num_uncovered_iou050": int((g["covered_iou050"] == 0).sum()),
-            })
+            summary_rows.append(
+                {
+                    "split": split,
+                    "stage1_conf": conf,
+                    "gt_instances": len(g),
+                    "candidate_recall_iou030": g["covered_iou030"].mean(),
+                    "candidate_recall_iou050": g["covered_iou050"].mean(),
+                    "candidate_recall_iou075": g["covered_iou075"].mean(),
+                    "mean_best_iou": g["best_iou"].mean(),
+                    "median_best_iou": g["best_iou"].median(),
+                    "num_uncovered_iou050": int((g["covered_iou050"] == 0).sum()),
+                }
+            )
 
     write_csv(upper_rows, out_dir / f"{split}_stage1_candidate_upper_bound_details.csv")
     write_csv(summary_rows, out_dir / f"{split}_stage1_candidate_upper_bound_summary.csv")
@@ -162,6 +176,7 @@ def analyze_upper_bound(img_dir, gt_dir, pred_root, split, confs, out_dir, raste
             f"mean_best_iou={r['mean_best_iou']:.3f} "
             f"uncovered@0.50={r['num_uncovered_iou050']}"
         )
+
 
 def analyze_stage2_drop(img_dir, gt_dir, pred_root, split, confs, ps, out_dir, raster_long, iou_th):
     drop_rows = []
@@ -209,24 +224,27 @@ def analyze_stage2_drop(img_dir, gt_dir, pred_root, split, confs, ps, out_dir, r
                     tp_like = best_iou >= iou_th
                     kept = item["line"] in s2_lines
 
-                    drop_rows.append({
-                        "split": split,
-                        "stage1_conf": conf,
-                        "stage2_p": f"{p:.2f}",
-                        "image": img_path.name,
-                        "stage1_pred_index": pi,
-                        "stage1_conf_score": item["conf"],
-                        "best_gt_index": best_gi,
-                        "best_iou": best_iou,
-                        "tp_like": int(tp_like),
-                        "fp_like": int(not tp_like),
-                        "kept_by_stage2": int(kept),
-                        "dropped_by_stage2": int(not kept),
-                        "dropped_tp_like": int(tp_like and not kept),
-                        "dropped_fp_like": int((not tp_like) and not kept),
-                    })
+                    drop_rows.append(
+                        {
+                            "split": split,
+                            "stage1_conf": conf,
+                            "stage2_p": f"{p:.2f}",
+                            "image": img_path.name,
+                            "stage1_pred_index": pi,
+                            "stage1_conf_score": item["conf"],
+                            "best_gt_index": best_gi,
+                            "best_iou": best_iou,
+                            "tp_like": int(tp_like),
+                            "fp_like": int(not tp_like),
+                            "kept_by_stage2": int(kept),
+                            "dropped_by_stage2": int(not kept),
+                            "dropped_tp_like": int(tp_like and not kept),
+                            "dropped_fp_like": int((not tp_like) and not kept),
+                        }
+                    )
 
     import pandas as pd
+
     df = pd.DataFrame(drop_rows)
     if len(df):
         for (conf, p), g in df.groupby(["stage1_conf", "stage2_p"]):
@@ -237,20 +255,22 @@ def analyze_stage2_drop(img_dir, gt_dir, pred_root, split, confs, ps, out_dir, r
             kept_tp = int(((g["tp_like"] == 1) & (g["kept_by_stage2"] == 1)).sum())
             kept_fp = int(((g["fp_like"] == 1) & (g["kept_by_stage2"] == 1)).sum())
 
-            summary_rows.append({
-                "split": split,
-                "stage1_conf": conf,
-                "stage2_p": p,
-                "total_stage1_candidates": len(g),
-                "tp_like_candidates": tp_like,
-                "fp_like_candidates": fp_like,
-                "kept_tp_like": kept_tp,
-                "dropped_tp_like": dropped_tp,
-                "kept_fp_like": kept_fp,
-                "dropped_fp_like": dropped_fp,
-                "tp_like_keep_rate": kept_tp / max(1, tp_like),
-                "fp_like_drop_rate": dropped_fp / max(1, fp_like),
-            })
+            summary_rows.append(
+                {
+                    "split": split,
+                    "stage1_conf": conf,
+                    "stage2_p": p,
+                    "total_stage1_candidates": len(g),
+                    "tp_like_candidates": tp_like,
+                    "fp_like_candidates": fp_like,
+                    "kept_tp_like": kept_tp,
+                    "dropped_tp_like": dropped_tp,
+                    "kept_fp_like": kept_fp,
+                    "dropped_fp_like": dropped_fp,
+                    "tp_like_keep_rate": kept_tp / max(1, tp_like),
+                    "fp_like_drop_rate": dropped_fp / max(1, fp_like),
+                }
+            )
 
     write_csv(drop_rows, out_dir / f"{split}_stage2_drop_details_iou{iou_th:.2f}.csv")
     write_csv(summary_rows, out_dir / f"{split}_stage2_drop_summary_iou{iou_th:.2f}.csv")
@@ -268,6 +288,7 @@ def analyze_stage2_drop(img_dir, gt_dir, pred_root, split, confs, ps, out_dir, r
             f"TP_keep={r['tp_like_keep_rate']:.3f} "
             f"FP_drop={r['fp_like_drop_rate']:.3f}"
         )
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -317,6 +338,7 @@ def main():
         )
 
     print("\n[DONE] saved to:", out_dir)
+
 
 if __name__ == "__main__":
     main()
