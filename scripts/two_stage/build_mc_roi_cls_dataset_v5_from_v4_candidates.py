@@ -5,7 +5,6 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-
 IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"]
 
 
@@ -43,7 +42,7 @@ def read_seg_file(path, has_conf=False):
     items = []
     if not path.exists():
         return items
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             if not line.strip():
                 continue
@@ -96,8 +95,8 @@ def crop_and_save(img, bbox_n, out_path, size=224):
 
 def raster_poly(poly, img_w, img_h, raster_long=768):
     scale = raster_long / max(img_w, img_h)
-    rw = max(1, int(round(img_w * scale)))
-    rh = max(1, int(round(img_h * scale)))
+    rw = max(1, round(img_w * scale))
+    rh = max(1, round(img_h * scale))
 
     pts = []
     for x, y in zip(poly[0::2], poly[1::2]):
@@ -201,13 +200,33 @@ def build_split(
             if biou >= pos_iou:
                 label = "missing_coating"
                 out_path = pos_dir / f"{stem}_cand{ci:03d}_iou{biou:.3f}_conf{cand['conf']:.3f}.jpg"
-                item = (img, expand_bbox(cand["bbox"], expand), out_path, label, stem, ci, cand["conf"], biou, "candidate_pos")
+                item = (
+                    img,
+                    expand_bbox(cand["bbox"], expand),
+                    out_path,
+                    label,
+                    stem,
+                    ci,
+                    cand["conf"],
+                    biou,
+                    "candidate_pos",
+                )
                 pos_items.append(item)
 
             elif biou < neg_iou:
                 label = "background"
                 out_path = neg_dir / f"{stem}_cand{ci:03d}_iou{biou:.3f}_conf{cand['conf']:.3f}.jpg"
-                item = (img, expand_bbox(cand["bbox"], expand), out_path, label, stem, ci, cand["conf"], biou, "hard_negative")
+                item = (
+                    img,
+                    expand_bbox(cand["bbox"], expand),
+                    out_path,
+                    label,
+                    stem,
+                    ci,
+                    cand["conf"],
+                    biou,
+                    "hard_negative",
+                )
                 neg_items.append(item)
 
             else:
@@ -236,16 +255,18 @@ def build_split(
         if not ok:
             continue
         rel = out_path.relative_to(out_root)
-        rows.append({
-            "split": split,
-            "path": str(rel),
-            "label": label,
-            "image": stem,
-            "candidate_idx": idx,
-            "stage1_conf": conf,
-            "best_iou": biou,
-            "source": source,
-        })
+        rows.append(
+            {
+                "split": split,
+                "path": str(rel),
+                "label": label,
+                "image": stem,
+                "candidate_idx": idx,
+                "stage1_conf": conf,
+                "best_iou": biou,
+                "source": source,
+            }
+        )
         saved += 1
 
     return {
@@ -307,18 +328,17 @@ def main():
 
     index_path = out_root / "index.csv"
     with open(index_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=[
-            "split", "path", "label", "image", "candidate_idx",
-            "stage1_conf", "best_iou", "source"
-        ])
+        writer = csv.DictWriter(
+            f, fieldnames=["split", "path", "label", "image", "candidate_idx", "stage1_conf", "best_iou", "source"]
+        )
         writer.writeheader()
         writer.writerows(all_rows)
 
     summary_path = out_root / "summary.csv"
     with open(summary_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=[
-            "split", "saved", "positive", "negative", "ambiguous_skipped", "empty_pred_images"
-        ])
+        writer = csv.DictWriter(
+            f, fieldnames=["split", "saved", "positive", "negative", "ambiguous_skipped", "empty_pred_images"]
+        )
         writer.writeheader()
         writer.writerows(summaries)
 
