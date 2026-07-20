@@ -1,5 +1,6 @@
 import os
 
+
 def main():
     cmd = r"""
 python train_yolo_seg_distill.py \
@@ -17,6 +18,7 @@ python train_yolo_seg_distill.py \
   --name yolo11n_seg_bcl_distill_v1
 """
     os.system(cmd)
+
 
 if __name__ == "__main__":
     main()

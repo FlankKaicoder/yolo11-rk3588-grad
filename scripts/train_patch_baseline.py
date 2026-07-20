@@ -1,14 +1,12 @@
-import os
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, WeightedRandomSampler
-from torchvision import datasets, transforms, models
 from sklearn.metrics import classification_report, confusion_matrix
-
+from torch.utils.data import DataLoader, WeightedRandomSampler
+from torchvision import datasets, models, transforms
 
 DATA_ROOT = Path("/root/autodl-tmp/yolo11-rk3588-grad/datasets/datasets_patch")
 TRAIN_DIR = DATA_ROOT / "train"
@@ -23,15 +21,19 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def build_datasets():
-    train_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+        ]
+    )
 
     train_dataset = datasets.ImageFolder(TRAIN_DIR, transform=train_tf)
     val_dataset = datasets.ImageFolder(VAL_DIR, transform=val_tf)
@@ -47,11 +49,7 @@ def build_weighted_sampler(dataset):
         print(f"class_idx={cls_idx}, class_name={dataset.classes[cls_idx]}, count={cnt}")
 
     sample_weights = [1.0 / class_count[label] for label in labels]
-    sampler = WeightedRandomSampler(
-        weights=sample_weights,
-        num_samples=len(sample_weights),
-        replacement=True
-    )
+    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
     return sampler
 
 
@@ -128,19 +126,9 @@ def main():
 
     sampler = build_weighted_sampler(train_dataset)
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        sampler=sampler,
-        num_workers=NUM_WORKERS
-    )
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=sampler, num_workers=NUM_WORKERS)
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS
-    )
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     model = build_model(num_classes=len(train_dataset.classes)).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
@@ -153,7 +141,7 @@ def main():
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer)
         val_loss, val_acc = evaluate(model, val_loader, criterion, train_dataset.classes)
 
-        print(f"\nEpoch [{epoch+1}/{EPOCHS}]")
+        print(f"\nEpoch [{epoch + 1}/{EPOCHS}]")
         print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
         print(f"Val   Loss: {val_loss:.4f}, Val   Acc: {val_acc:.4f}")
 
