@@ -2,7 +2,6 @@ import argparse
 import csv
 from pathlib import Path
 
-
 IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"]
 
 
@@ -66,7 +65,7 @@ def read_label_file(path, has_conf="auto"):
     if not path.exists():
         return items
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             if not line.strip():
                 continue
@@ -171,7 +170,7 @@ def eval_dir(src, split, pred_label_dir, iou_ths, method_name):
             total_gt += len(gts)
             total_pred += len(preds)
 
-            tp, fp, fn, matches = evaluate_one_image(gts, preds, iou_th)
+            tp, fp, fn, _matches = evaluate_one_image(gts, preds, iou_th)
 
             total_tp += tp
             total_fp += fp
@@ -184,37 +183,41 @@ def eval_dir(src, split, pred_label_dir, iou_ths, method_name):
                     best = max(best, box_iou(pred["box"], gt["box"]))
                 mean_best_ious.append(best)
 
-            detail_rows.append({
-                "method": method_name,
-                "split": split,
-                "iou_th": iou_th,
-                "image": stem,
-                "gt": len(gts),
-                "pred": len(preds),
-                "tp": tp,
-                "fp": fp,
-                "fn": fn,
-            })
+            detail_rows.append(
+                {
+                    "method": method_name,
+                    "split": split,
+                    "iou_th": iou_th,
+                    "image": stem,
+                    "gt": len(gts),
+                    "pred": len(preds),
+                    "tp": tp,
+                    "fp": fp,
+                    "fn": fn,
+                }
+            )
 
         precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
         recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
         mean_best_iou = sum(mean_best_ious) / len(mean_best_ious) if mean_best_ious else 0.0
 
-        summary_rows.append({
-            "method": method_name,
-            "split": split,
-            "iou_th": iou_th,
-            "gt": total_gt,
-            "pred": total_pred,
-            "tp": total_tp,
-            "fp": total_fp,
-            "fn": total_fn,
-            "precision": precision,
-            "recall": recall,
-            "f1": f1,
-            "mean_best_box_iou": mean_best_iou,
-        })
+        summary_rows.append(
+            {
+                "method": method_name,
+                "split": split,
+                "iou_th": iou_th,
+                "gt": total_gt,
+                "pred": total_pred,
+                "tp": total_tp,
+                "fp": total_fp,
+                "fn": total_fn,
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+                "mean_best_box_iou": mean_best_iou,
+            }
+        )
 
     return summary_rows, detail_rows
 
@@ -239,12 +242,7 @@ def main():
     parser.add_argument("--splits", default="val,test")
     parser.add_argument("--iou-ths", default="0.30,0.50,0.75")
 
-    parser.add_argument(
-        "--items",
-        nargs="+",
-        required=True,
-        help="格式: method_name=pred_label_dir"
-    )
+    parser.add_argument("--items", nargs="+", required=True, help="格式: method_name=pred_label_dir")
 
     args = parser.parse_args()
 

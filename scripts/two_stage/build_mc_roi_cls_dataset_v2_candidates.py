@@ -2,9 +2,11 @@ import argparse
 import csv
 import random
 from pathlib import Path
+
 from PIL import Image
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"}
+
 
 def parse_seg_label(path, has_conf=False):
     items = []
@@ -35,6 +37,7 @@ def parse_seg_label(path, has_conf=False):
         items.append({"bbox": bbox, "conf": conf, "line": line})
     return items
 
+
 def iou_box(a, b):
     ax1, ay1, ax2, ay2 = a
     bx1, by1, bx2, by2 = b
@@ -53,6 +56,7 @@ def iou_box(a, b):
 
     return inter / (area_a + area_b - inter + 1e-9)
 
+
 def expand_to_square_pixel(bbox_n, w, h, expand=1.4):
     x1, y1, x2, y2 = bbox_n
     x1, x2 = x1 * w, x2 * w
@@ -64,10 +68,10 @@ def expand_to_square_pixel(bbox_n, w, h, expand=1.4):
     bh = max(2.0, y2 - y1)
     side = max(bw, bh) * expand
 
-    nx1 = int(round(cx - side / 2))
-    ny1 = int(round(cy - side / 2))
-    nx2 = int(round(cx + side / 2))
-    ny2 = int(round(cy + side / 2))
+    nx1 = round(cx - side / 2)
+    ny1 = round(cy - side / 2)
+    nx2 = round(cx + side / 2)
+    ny2 = round(cy + side / 2)
 
     nx1 = max(0, nx1)
     ny1 = max(0, ny1)
@@ -79,9 +83,11 @@ def expand_to_square_pixel(bbox_n, w, h, expand=1.4):
 
     return nx1, ny1, nx2, ny2
 
+
 def save_crop(img, box, path):
     crop = img.crop(box).resize((224, 224))
     crop.save(path, quality=95)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -111,7 +117,7 @@ def main():
     images = sorted([p for p in img_dir.iterdir() if p.suffix in IMG_EXTS])
     names = [p.name for p in images]
     rng.shuffle(names)
-    val_set = set(names[:max(1, int(len(names) * args.val_ratio))])
+    val_set = set(names[: max(1, int(len(names) * args.val_ratio))])
 
     rows = []
     cnt = {"cand_pos": 0, "cand_neg": 0, "ignore": 0, "gt_pos": 0}
@@ -155,15 +161,17 @@ def main():
             save_path = out_dir / split / cls_name / save_name
             save_crop(img, box, save_path)
 
-            rows.append({
-                "split": split,
-                "class": cls_name,
-                "source": source,
-                "image": img_path.name,
-                "crop": str(save_path),
-                "conf": p["conf"],
-                "max_iou_gt": max_iou,
-            })
+            rows.append(
+                {
+                    "split": split,
+                    "class": cls_name,
+                    "source": source,
+                    "image": img_path.name,
+                    "crop": str(save_path),
+                    "conf": p["conf"],
+                    "max_iou_gt": max_iou,
+                }
+            )
 
         # B. optional GT positives, used as supplement only
         if args.include_gt_pos:
@@ -176,15 +184,17 @@ def main():
                 save_path = out_dir / split / "missing_coating" / save_name
                 save_crop(img, box, save_path)
 
-                rows.append({
-                    "split": split,
-                    "class": "missing_coating",
-                    "source": "gt_positive_supplement",
-                    "image": img_path.name,
-                    "crop": str(save_path),
-                    "conf": "",
-                    "max_iou_gt": 1.0,
-                })
+                rows.append(
+                    {
+                        "split": split,
+                        "class": "missing_coating",
+                        "source": "gt_positive_supplement",
+                        "image": img_path.name,
+                        "crop": str(save_path),
+                        "conf": "",
+                        "max_iou_gt": 1.0,
+                    }
+                )
                 cnt["gt_pos"] += 1
 
     with (out_dir / "index.csv").open("w", newline="", encoding="utf-8") as f:
@@ -202,6 +212,7 @@ def main():
         for cls in ["missing_coating", "background"]:
             n = len(list((out_dir / split / cls).glob("*.jpg")))
             print(f"{split}/{cls}: {n}")
+
 
 if __name__ == "__main__":
     main()
