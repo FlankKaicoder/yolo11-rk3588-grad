@@ -1,7 +1,7 @@
 import argparse
-from ultralytics.models.yolo.segment.train import SegmentationTrainer
 
 from distill_seg_v2_fgbg.model import DistillSegmentationModel
+from ultralytics.models.yolo.segment.train import SegmentationTrainer
 
 
 def unwrap_model(m):
@@ -98,14 +98,11 @@ def main():
         "teacher_input_size": 224,
         "teacher_mean": (0.485, 0.456, 0.406),
         "teacher_std": (0.229, 0.224, 0.225),
-
         "teacher_out_dim": 512,
         "student_feat_dim": 128,
         "hook_idx": args.hook_idx,
-
         "lambda_pos": args.lambda_pos,
         "lambda_neg": args.lambda_neg,
-
         "easy_bg_per_image": args.easy_bg_per_image,
         "near_bg_per_defect": args.near_bg_per_defect,
         "min_crop_size": args.min_crop_size,
@@ -124,7 +121,6 @@ def main():
         "name": args.name,
         "exist_ok": True,
         "optimizer": "auto",
-
         # 第一版先关掉重增强
         "mosaic": 0.0,
         "mixup": 0.0,
