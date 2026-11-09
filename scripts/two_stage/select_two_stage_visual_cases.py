@@ -1,17 +1,22 @@
 import argparse
 import shutil
 from pathlib import Path
+
 import pandas as pd
+
 
 def load_cases(path, prefix):
     df = pd.read_csv(path)
-    df = df.rename(columns={
-        "pred_count": f"{prefix}_pred",
-        "case": f"{prefix}_case",
-        "diff_pred_minus_gt": f"{prefix}_diff",
-    })
+    df = df.rename(
+        columns={
+            "pred_count": f"{prefix}_pred",
+            "case": f"{prefix}_case",
+            "diff_pred_minus_gt": f"{prefix}_diff",
+        }
+    )
     keep = ["image", "gt_count", f"{prefix}_pred", f"{prefix}_case", f"{prefix}_diff"]
     return df[keep]
+
 
 def severity_rank(case):
     # 越大越差，用来判断是否改善
@@ -23,12 +28,13 @@ def severity_rank(case):
         "miss": 4,
     }.get(case, 9)
 
+
 def tag_row(r):
     s1 = r["stage1_case"]
     v3 = r["v3_case"]
     s1_pred = r["stage1_pred"]
     v3_pred = r["v3_pred"]
-    gt = r["gt_count"]
+    r["gt_count"]
 
     # Stage1 假阳性被 v3 删掉
     if s1 == "false_positive" and v3 == "ok":
@@ -80,6 +86,7 @@ def tag_row(r):
 
     return "13_no_obvious_change"
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--saved-root", required=True)
@@ -123,11 +130,16 @@ def main():
     print()
     print("===== 前 50 条对比 =====")
     show_cols = [
-        "image", "gt_count",
-        "stage1_pred", "stage1_case",
-        "v1_pred", "v1_case",
-        "v2_pred", "v2_case",
-        "v3_pred", "v3_case",
+        "image",
+        "gt_count",
+        "stage1_pred",
+        "stage1_case",
+        "v1_pred",
+        "v1_case",
+        "v2_pred",
+        "v2_case",
+        "v3_pred",
+        "v3_case",
         "v3_tag",
     ]
     print(df2[show_cols].head(50).to_string(index=False))
@@ -154,6 +166,7 @@ def main():
     print()
     print("[OK] copied visual images:", copied)
     print("[OK] visual out:", vis_out)
+
 
 if __name__ == "__main__":
     main()
