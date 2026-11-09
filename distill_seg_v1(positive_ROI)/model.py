@@ -1,10 +1,10 @@
 import torch
-from ultralytics.nn.tasks import SegmentationModel
-
 from distill_seg.adapter import StudentAdapter
 from distill_seg.losses import cosine_distill_loss
 from distill_seg.roi_pool import crop_image_tensor, pool_feature_from_box
 from distill_seg.teacher_wrapper import BCLTeacher
+
+from ultralytics.nn.tasks import SegmentationModel
 
 
 class DistillSegCriterion:
@@ -21,9 +21,9 @@ class DistillSegCriterion:
         if isinstance(feat, (list, tuple)):
             feat = feat[0]
 
-        imgs = batch["img"]               # [B, 3, H, W]
-        bboxes = batch["bboxes"]          # [N, 4] normalized xywh
-        batch_idx = batch["batch_idx"]    # [N]
+        imgs = batch["img"]  # [B, 3, H, W]
+        bboxes = batch["bboxes"]  # [N, 4] normalized xywh
+        batch_idx = batch["batch_idx"]  # [N]
         img_h, img_w = imgs.shape[-2:]
 
         teacher_feats = []
@@ -32,18 +32,18 @@ class DistillSegCriterion:
         for i in range(len(bboxes)):
             bi = int(batch_idx[i].item())
 
-            crop = crop_image_tensor(imgs[bi:bi + 1], bboxes[i])
+            crop = crop_image_tensor(imgs[bi : bi + 1], bboxes[i])
             if crop is None:
                 continue
 
-            roi_feat = pool_feature_from_box(feat[bi:bi + 1], bboxes[i], img_h, img_w)
+            roi_feat = pool_feature_from_box(feat[bi : bi + 1], bboxes[i], img_h, img_w)
             if roi_feat is None:
                 continue
 
             with torch.no_grad():
-                t = self.model.teacher(crop)   # [1, 512]
+                t = self.model.teacher(crop)  # [1, 512]
 
-            s = self.model.adapter(roi_feat)   # [1, 512]
+            s = self.model.adapter(roi_feat)  # [1, 512]
 
             teacher_feats.append(t)
             student_feats.append(s)

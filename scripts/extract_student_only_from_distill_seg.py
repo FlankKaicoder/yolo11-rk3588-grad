@@ -1,6 +1,8 @@
-from pathlib import Path
 import sys
+from pathlib import Path
+
 import torch
+
 from ultralytics import YOLO
 
 PROJECT_ROOT = Path("/root/autodl-tmp/yolo11-rk3588-grad")
@@ -11,12 +13,20 @@ import distill_seg_v2_fgbg.model  # noqa: F401
 
 CLEAN_STUDENT_PT = PROJECT_ROOT / "runs/hier_2stage_seg/yolo11n_seg_stage1_defect_clean_imgsz640/weights/best.pt"
 
-DISTILL_PT = PROJECT_ROOT / "runs/hier_2stage_seg/yolo11n_seg_stage1_defect_binary_teacher_distill_clean_lpos005_lneg002_h13_imgsz640/weights/best.pt"
+DISTILL_PT = (
+    PROJECT_ROOT
+    / "runs/hier_2stage_seg/yolo11n_seg_stage1_defect_binary_teacher_distill_clean_lpos005_lneg002_h13_imgsz640/weights/best.pt"
+)
 
-OUT_PT = PROJECT_ROOT / "runs/hier_2stage_seg/yolo11n_seg_stage1_defect_binary_teacher_distill_clean_lpos005_lneg002_h13_imgsz640/weights/best_student_only.pt"
+OUT_PT = (
+    PROJECT_ROOT
+    / "runs/hier_2stage_seg/yolo11n_seg_stage1_defect_binary_teacher_distill_clean_lpos005_lneg002_h13_imgsz640/weights/best_student_only.pt"
+)
+
 
 def count_params(model):
     return sum(p.numel() for p in model.parameters())
+
 
 def main():
     print("[INFO] clean student:", CLEAN_STUDENT_PT)
@@ -93,6 +103,7 @@ def main():
     print("[CHECK] loaded class:", type(y.model))
     print("[CHECK] params:", count_params(y.model))
     print("[CHECK] layers:", len(y.model.model) if hasattr(y.model, "model") else "unknown")
+
 
 if __name__ == "__main__":
     main()

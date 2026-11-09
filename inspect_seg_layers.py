@@ -1,5 +1,7 @@
 import argparse
+
 import torch
+
 from ultralytics import YOLO
 
 
@@ -29,6 +31,7 @@ def main():
                 print(f"[{i:02d}] {module.__class__.__name__:<30} -> {shapes}")
             else:
                 print(f"[{i:02d}] {module.__class__.__name__:<30} -> {type(outputs).__name__}")
+
         return hook
 
     for i, m in enumerate(modules):

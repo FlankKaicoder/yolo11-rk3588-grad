@@ -1,9 +1,12 @@
 from pathlib import Path
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 
-summary_csv = Path("runs/segment/missing_coating_single_two_stage/two_stage_mask_instance_eval/mask_instance_iou_summary.csv")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+summary_csv = Path(
+    "runs/segment/missing_coating_single_two_stage/two_stage_mask_instance_eval/mask_instance_iou_summary.csv"
+)
 out_dir = Path("runs/segment/missing_coating_single_two_stage/report_figures/detection_confusion_matrices")
 out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -21,12 +24,7 @@ targets = [
 ]
 
 for method, conf, p, name in targets:
-    sub = df[
-        (df["split"] == "test") &
-        (df["iou_th"] == 0.50) &
-        (df["method"] == method) &
-        (df["stage1_conf"] == conf)
-    ]
+    sub = df[(df["split"] == "test") & (df["iou_th"] == 0.50) & (df["method"] == method) & (df["stage1_conf"] == conf)]
 
     if p != "none":
         sub = sub[sub["stage2_p"].astype(float).round(2) == float(p)]
@@ -43,10 +41,12 @@ for method, conf, p, name in targets:
     fn = int(r["fn"])
 
     # 检测任务没有真正 TN，这里用 -1 表示 N/A
-    mat = np.array([
-        [tp, fn],
-        [fp, 0],
-    ])
+    mat = np.array(
+        [
+            [tp, fn],
+            [fp, 0],
+        ]
+    )
 
     fig, ax = plt.subplots(figsize=(5.8, 4.8))
     im = ax.imshow(mat)

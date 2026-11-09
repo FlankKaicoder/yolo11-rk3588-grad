@@ -1,19 +1,23 @@
-from pathlib import Path
 import argparse
 import shutil
+from pathlib import Path
+
 import yaml
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
+
 def load_yaml(path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
 
 def resolve_path(base, p):
     p = Path(p)
     if p.is_absolute():
         return p
     return base / p
+
 
 def image_to_label_path(img_path: Path):
     parts = list(img_path.parts)
@@ -23,8 +27,10 @@ def image_to_label_path(img_path: Path):
     parts[idx] = "labels"
     return Path(*parts).with_suffix(".txt")
 
+
 def collect_images(img_dir: Path):
     return sorted([p for p in img_dir.rglob("*") if p.suffix.lower() in IMG_EXTS])
+
 
 def convert_split(split, src_yaml_data, src_root, dst_root):
     if split not in src_yaml_data:
@@ -110,6 +116,7 @@ def convert_split(split, src_yaml_data, src_root, dst_root):
         f"missing={missing_count}, empty={empty_count}, box_like_skipped={box_like_count}"
     )
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--src-yaml", required=True, help="原始多分类分割数据集 yaml")
@@ -150,6 +157,7 @@ def main():
         yaml.safe_dump(out_yaml, f, allow_unicode=True, sort_keys=False)
 
     print(f"[OK] saved yaml: {dst_root / 'data.yaml'}")
+
 
 if __name__ == "__main__":
     main()

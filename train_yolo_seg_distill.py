@@ -1,7 +1,8 @@
 import argparse
-from ultralytics.models.yolo.segment.train import SegmentationTrainer
 
 from distill_seg.model import DistillSegmentationModel
+
+from ultralytics.models.yolo.segment.train import SegmentationTrainer
 
 
 def unwrap_model(m):
@@ -83,7 +84,7 @@ def main():
         "teacher_num_classes": 4,
         "teacher_feat_dim": 128,
         "teacher_out_dim": 512,
-        "student_feat_dim": 128,   # hook_idx=13 -> C=128
+        "student_feat_dim": 128,  # hook_idx=13 -> C=128
         "hook_idx": args.hook_idx,
         "lambda_dist": args.lambda_dist,
     }
@@ -100,7 +101,6 @@ def main():
         "name": args.name,
         "exist_ok": True,
         "optimizer": "auto",
-
         # 第一版蒸馏先关掉重增强
         "mosaic": 0.0,
         "mixup": 0.0,

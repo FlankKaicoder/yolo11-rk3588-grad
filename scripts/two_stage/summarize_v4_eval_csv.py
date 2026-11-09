@@ -1,7 +1,8 @@
-from pathlib import Path
-import pandas as pd
-import re
 import argparse
+import re
+from pathlib import Path
+
+import pandas as pd
 
 
 def infer_split(s):
@@ -88,10 +89,25 @@ def main():
     # 自动挑常见指标列
     prefer_cols = []
     for c in [
-        "split", "stage", "p", "threshold", "iou_th", "iou", 
-        "precision", "recall", "f1", "tp", "fp", "fn",
-        "TP", "FP", "FN", "P", "R", "F1",
-        "source_name"
+        "split",
+        "stage",
+        "p",
+        "threshold",
+        "iou_th",
+        "iou",
+        "precision",
+        "recall",
+        "f1",
+        "tp",
+        "fp",
+        "fn",
+        "TP",
+        "FP",
+        "FN",
+        "P",
+        "R",
+        "F1",
+        "source_name",
     ]:
         if c in all_df.columns and c not in prefer_cols:
             prefer_cols.append(c)
