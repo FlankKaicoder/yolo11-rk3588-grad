@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 import math
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from ultralytics.utils.torch_utils import fuse_conv_and_bn
 
@@ -2067,6 +2068,7 @@ class RealNVP(nn.Module):
         z, log_det = self.backward_p(x)
         return self.prior.log_prob(z) + log_det
 
+
 class ECAAttention(nn.Module):
     """Efficient Channel Attention."""
 
@@ -2082,12 +2084,14 @@ class ECAAttention(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        y = self.avg_pool(x)                                  # [B, C, 1, 1]
-        y = y.squeeze(-1).transpose(-1, -2)                  # [B, 1, C]
-        y = self.conv(y)                                     # [B, 1, C]
+        y = self.avg_pool(x)  # [B, C, 1, 1]
+        y = y.squeeze(-1).transpose(-1, -2)  # [B, 1, C]
+        y = self.conv(y)  # [B, 1, C]
         y = self.sigmoid(y)
-        y = y.transpose(-1, -2).unsqueeze(-1)                # [B, C, 1, 1]
+        y = y.transpose(-1, -2).unsqueeze(-1)  # [B, C, 1, 1]
         return x * y.expand_as(x)
+
+
 class ChannelAttention(nn.Module):
     """Channel Attention for CBAM."""
 
@@ -2139,6 +2143,8 @@ class CBAM(nn.Module):
         x = x * self.channel_attention(x)
         x = x * self.spatial_attention(x)
         return x
+
+
 class SimAM(nn.Module):
     """Simple, parameter-free attention module."""
 
@@ -2148,12 +2154,10 @@ class SimAM(nn.Module):
         self.e_lambda = e_lambda
 
     def forward(self, x):
-        b, c, h, w = x.size()
+        _b, _c, h, w = x.size()
         n = h * w - 1 if h * w > 1 else 1
 
         x_minus_mu_square = (x - x.mean(dim=[2, 3], keepdim=True)).pow(2)
-        y = x_minus_mu_square / (
-            4 * (x_minus_mu_square.sum(dim=[2, 3], keepdim=True) / n + self.e_lambda)
-        ) + 0.5
+        y = x_minus_mu_square / (4 * (x_minus_mu_square.sum(dim=[2, 3], keepdim=True) / n + self.e_lambda)) + 0.5
 
         return x * self.activaton(y)

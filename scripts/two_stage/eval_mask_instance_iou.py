@@ -1,10 +1,12 @@
 import argparse
 import csv
 from pathlib import Path
+
 import numpy as np
 from PIL import Image, ImageDraw
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"}
+
 
 def parse_label(path, has_conf):
     items = []
@@ -34,13 +36,16 @@ def parse_label(path, has_conf):
             continue
 
         pts = list(zip(coords[0::2], coords[1::2]))
-        items.append({
-            "conf": conf,
-            "pts": pts,
-            "line": line.strip(),
-        })
+        items.append(
+            {
+                "conf": conf,
+                "pts": pts,
+                "line": line.strip(),
+            }
+        )
 
     return items
+
 
 def raster_poly(pts_norm, canvas_w, canvas_h):
     mask = Image.new("L", (canvas_w, canvas_h), 0)
@@ -48,8 +53,8 @@ def raster_poly(pts_norm, canvas_w, canvas_h):
 
     pts = []
     for x, y in pts_norm:
-        px = int(round(x * canvas_w))
-        py = int(round(y * canvas_h))
+        px = round(x * canvas_w)
+        py = round(y * canvas_h)
         px = max(0, min(canvas_w - 1, px))
         py = max(0, min(canvas_h - 1, py))
         pts.append((px, py))
@@ -59,12 +64,14 @@ def raster_poly(pts_norm, canvas_w, canvas_h):
 
     return np.array(mask, dtype=bool)
 
+
 def mask_iou(a, b):
     inter = np.logical_and(a, b).sum()
     union = np.logical_or(a, b).sum()
     if union <= 0:
         return 0.0
     return float(inter / union)
+
 
 def eval_split(img_dir, gt_dir, pred_dir, iou_th, raster_long=960):
     img_dir = Path(img_dir)
@@ -90,10 +97,10 @@ def eval_split(img_dir, gt_dir, pred_dir, iou_th, raster_long=960):
         # 为了速度，不按原图 4K 栅格化，而是缩到最长边 raster_long
         if w >= h:
             cw = raster_long
-            ch = max(1, int(round(h / w * raster_long)))
+            ch = max(1, round(h / w * raster_long))
         else:
             ch = raster_long
-            cw = max(1, int(round(w / h * raster_long)))
+            cw = max(1, round(w / h * raster_long))
 
         gt_items = parse_label(gt_dir / f"{stem}.txt", has_conf=False)
         pred_items = parse_label(pred_dir / f"{stem}.txt", has_conf=True)
@@ -138,15 +145,17 @@ def eval_split(img_dir, gt_dir, pred_dir, iou_th, raster_long=960):
         total_pred += len(pred_masks)
         matched_ious.extend(img_match_ious)
 
-        detail_rows.append({
-            "image": img_path.name,
-            "gt": len(gt_masks),
-            "pred": len(pred_masks),
-            "tp": img_tp,
-            "fp": img_fp,
-            "fn": img_fn,
-            "mean_matched_iou": float(np.mean(img_match_ious)) if img_match_ious else 0.0,
-        })
+        detail_rows.append(
+            {
+                "image": img_path.name,
+                "gt": len(gt_masks),
+                "pred": len(pred_masks),
+                "tp": img_tp,
+                "fp": img_fp,
+                "fn": img_fn,
+                "mean_matched_iou": float(np.mean(img_match_ious)) if img_match_ious else 0.0,
+            }
+        )
 
     precision = total_tp / max(1, total_tp + total_fp)
     recall = total_tp / max(1, total_tp + total_fn)
@@ -167,6 +176,7 @@ def eval_split(img_dir, gt_dir, pred_dir, iou_th, raster_long=960):
 
     return summary, detail_rows
 
+
 def write_csv(rows, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -176,6 +186,7 @@ def write_csv(rows, path):
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -219,12 +230,14 @@ def main():
                         raster_long=args.raster_long,
                     )
 
-                    summary.update({
-                        "split": split,
-                        "method": "stage1",
-                        "stage1_conf": conf_name,
-                        "stage2_p": "none",
-                    })
+                    summary.update(
+                        {
+                            "split": split,
+                            "method": "stage1",
+                            "stage1_conf": conf_name,
+                            "stage2_p": "none",
+                        }
+                    )
                     all_summary.append(summary)
 
                     detail_path = out_dir / f"details_{split}_stage1_conf{conf_name}_iou{iou_th:.2f}.csv"
@@ -254,12 +267,14 @@ def main():
                         raster_long=args.raster_long,
                     )
 
-                    summary.update({
-                        "split": split,
-                        "method": "stage2_v3",
-                        "stage1_conf": conf_name,
-                        "stage2_p": f"{p:.2f}",
-                    })
+                    summary.update(
+                        {
+                            "split": split,
+                            "method": "stage2_v3",
+                            "stage1_conf": conf_name,
+                            "stage2_p": f"{p:.2f}",
+                        }
+                    )
                     all_summary.append(summary)
 
                     detail_path = out_dir / f"details_{split}_stage2v3_conf{conf_name}_p{p:.2f}_iou{iou_th:.2f}.csv"
@@ -276,7 +291,7 @@ def main():
             print(
                 f"method={r['method']:9s} "
                 f"conf={r['stage1_conf']} "
-                f"p={str(r['stage2_p']):>4s} "
+                f"p={r['stage2_p']!s:>4s} "
                 f"P={r['precision']:.3f} "
                 f"R={r['recall']:.3f} "
                 f"F1={r['f1']:.3f} "
@@ -287,6 +302,7 @@ def main():
                 f"gt={r['gt_total']:3d} "
                 f"mIoU={r['mean_matched_iou']:.3f}"
             )
+
 
 if __name__ == "__main__":
     main()

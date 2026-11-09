@@ -33,16 +33,17 @@ def max_iou_with_gt(box, gt_boxes):
     return max(box_iou_xyxy(box, gt) for gt in gt_boxes)
 
 
-def sample_near_bg_for_one_gt(gt_box, img_w, img_h, all_gt_boxes,
-                              min_crop_size=48, max_iou_bg_with_gt=0.05, max_tries=80):
+def sample_near_bg_for_one_gt(
+    gt_box, img_w, img_h, all_gt_boxes, min_crop_size=48, max_iou_bg_with_gt=0.05, max_tries=80
+):
     x1, y1, x2, y2 = gt_box
     bw = x2 - x1
     bh = y2 - y1
 
-    min_pw = max(min_crop_size, int(round(0.5 * bw)))
-    max_pw = max(min_pw, int(round(0.8 * bw)))
-    min_ph = max(min_crop_size, int(round(0.5 * bh)))
-    max_ph = max(min_ph, int(round(0.8 * bh)))
+    min_pw = max(min_crop_size, round(0.5 * bw))
+    max_pw = max(min_pw, round(0.8 * bw))
+    min_ph = max(min_crop_size, round(0.5 * bh))
+    max_ph = max(min_ph, round(0.8 * bh))
 
     for _ in range(max_tries):
         pw = random.randint(min_pw, max_pw)
@@ -83,8 +84,9 @@ def sample_near_bg_for_one_gt(gt_box, img_w, img_h, all_gt_boxes,
     return None
 
 
-def collect_pos_neg_boxes(batch, imgs, easy_bg_per_image=1, near_bg_per_defect=1,
-                          min_crop_size=48, max_iou_bg_with_gt=0.05):
+def collect_pos_neg_boxes(
+    batch, imgs, easy_bg_per_image=1, near_bg_per_defect=1, min_crop_size=48, max_iou_bg_with_gt=0.05
+):
     _, _, img_h, img_w = imgs.shape
     batch_idx = batch["batch_idx"].view(-1).cpu()
     bboxes = batch["bboxes"].cpu()
@@ -108,7 +110,10 @@ def collect_pos_neg_boxes(batch, imgs, easy_bg_per_image=1, near_bg_per_defect=1
         for gt in gt_boxes:
             for _ in range(near_bg_per_defect):
                 bg = sample_near_bg_for_one_gt(
-                    gt, img_w, img_h, gt_boxes,
+                    gt,
+                    img_w,
+                    img_h,
+                    gt_boxes,
                     min_crop_size=min_crop_size,
                     max_iou_bg_with_gt=max_iou_bg_with_gt,
                 )

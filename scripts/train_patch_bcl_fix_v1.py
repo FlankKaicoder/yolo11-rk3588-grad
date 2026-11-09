@@ -1,21 +1,18 @@
-import os
 import csv
 import json
-import time
-import random
 import logging
-from pathlib import Path
+import random
+import time
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
+from sklearn.metrics import classification_report, confusion_matrix
+from torch import nn, optim
 from torch.utils.data import DataLoader
-from torchvision import datasets, transforms, models
-from sklearn.metrics import classification_report, confusion_matrix, f1_score, recall_score, precision_score
-
+from torchvision import datasets, models, transforms
 
 # =========================
 # 基础配置
@@ -141,11 +138,7 @@ class BCLResNet18(nn.Module):
         backbone.fc = nn.Identity()
         self.encoder = backbone
 
-        self.projector = nn.Sequential(
-            nn.Linear(in_features, 512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, feat_dim)
-        )
+        self.projector = nn.Sequential(nn.Linear(in_features, 512), nn.ReLU(inplace=True), nn.Linear(512, feat_dim))
 
         self.classifier = nn.Linear(in_features, num_classes)
 
@@ -162,20 +155,24 @@ def build_transforms():
     imagenet_mean = [0.485, 0.456, 0.406]
     imagenet_std = [0.229, 0.224, 0.225]
 
-    train_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.2),
-        transforms.RandomRotation(3),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.RandomRotation(3),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+        ]
+    )
 
     return train_tf, val_tf
 
@@ -188,22 +185,18 @@ def get_class_counts_from_samples(samples, num_classes):
 
 
 class BalancedContrastiveLoss(nn.Module):
+    """修正版： 1. 修正 features 展开顺序，使用 cat(unbind(...)) 保证顺序与 mask.repeat 一致 2. 暂时不做类别加权，先做最干净的控制实验.
     """
-    修正版：
-    1. 修正 features 展开顺序，使用 cat(unbind(...)) 保证顺序与 mask.repeat 一致
-    2. 暂时不做类别加权，先做最干净的控制实验
-    """
+
     def __init__(self, temperature=0.07):
         super().__init__()
         self.temperature = temperature
 
     def forward(self, features, labels):
-        """
-        features: [bsz, 2, dim]
-        labels: [bsz]
+        """features: [bsz, 2, dim] labels: [bsz].
         """
         device = features.device
-        bsz, n_views, dim = features.shape
+        _bsz, n_views, _dim = features.shape
 
         # [bsz, 2, dim] -> normalize
         features = F.normalize(features, dim=2)
@@ -253,7 +246,7 @@ def save_config():
         "train_dir": str(TRAIN_DIR),
         "val_dir": str(VAL_DIR),
         "device": str(DEVICE),
-        "note": "Fix BCL feature order bug; remove sampler and class-balanced CE for clean control experiment."
+        "note": "Fix BCL feature order bug; remove sampler and class-balanced CE for clean control experiment.",
     }
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
@@ -262,25 +255,27 @@ def save_config():
 def init_csv():
     with open(CSV_LOG_PATH, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow([
-            "epoch",
-            "train_loss",
-            "train_acc",
-            "val_loss",
-            "val_acc",
-            "macro_precision",
-            "macro_recall",
-            "macro_f1",
-            "weighted_f1",
-            "carbon_recall",
-            "corrosion_recall",
-            "missing_coating_recall",
-            "missing_material_recall",
-            "carbon_f1",
-            "corrosion_f1",
-            "missing_coating_f1",
-            "missing_material_f1"
-        ])
+        writer.writerow(
+            [
+                "epoch",
+                "train_loss",
+                "train_acc",
+                "val_loss",
+                "val_acc",
+                "macro_precision",
+                "macro_recall",
+                "macro_f1",
+                "weighted_f1",
+                "carbon_recall",
+                "corrosion_recall",
+                "missing_coating_recall",
+                "missing_material_recall",
+                "carbon_f1",
+                "corrosion_f1",
+                "missing_coating_f1",
+                "missing_material_f1",
+            ]
+        )
 
 
 def append_csv(row):
@@ -353,12 +348,7 @@ def evaluate(model, loader, ce_criterion, class_names, epoch):
         all_paths.extend(list(paths))
 
     report_dict = classification_report(
-        all_labels,
-        all_preds,
-        target_names=class_names,
-        digits=4,
-        output_dict=True,
-        zero_division=0
+        all_labels, all_preds, target_names=class_names, digits=4, output_dict=True, zero_division=0
     )
     cm = confusion_matrix(all_labels, all_preds)
 
@@ -368,14 +358,9 @@ def evaluate(model, loader, ce_criterion, class_names, epoch):
         "classification_report": report_dict,
         "confusion_matrix": cm.tolist(),
         "samples": [
-            {
-                "path": p,
-                "y_true": int(y),
-                "y_pred": int(pred),
-                "probs": [float(x) for x in prob]
-            }
+            {"path": p, "y_true": int(y), "y_pred": int(pred), "probs": [float(x) for x in prob]}
             for p, y, pred, prob in zip(all_paths, all_labels, all_preds, all_probs)
-        ]
+        ],
     }
 
     with open(REPORT_DIR / f"epoch_{epoch:03d}_report.json", "w", encoding="utf-8") as f:
@@ -443,21 +428,10 @@ def main():
 
     # 这次先不用 sampler，做最干净的 BCL 控制实验
     train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=NUM_WORKERS,
-        drop_last=True,
-        pin_memory=True
+        train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, drop_last=True, pin_memory=True
     )
 
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS,
-        pin_memory=True
-    )
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
     model = BCLResNet18(num_classes=num_classes).to(DEVICE)
 
@@ -474,13 +448,9 @@ def main():
     for epoch in range(1, EPOCHS + 1):
         start = time.time()
 
-        train_loss, train_acc = train_one_epoch(
-            model, train_loader, ce_criterion, bcl_criterion, optimizer
-        )
+        train_loss, train_acc = train_one_epoch(model, train_loader, ce_criterion, bcl_criterion, optimizer)
 
-        metrics = evaluate(
-            model, val_loader, ce_criterion, train_dataset.classes, epoch
-        )
+        metrics = evaluate(model, val_loader, ce_criterion, train_dataset.classes, epoch)
         scheduler.step()
 
         val_loss = metrics["val_loss"]
@@ -493,25 +463,27 @@ def main():
         c_recall, cor_recall, mc_recall, mm_recall = metrics["per_class_recall"]
         c_f1, cor_f1, mc_f1, mm_f1 = metrics["per_class_f1"]
 
-        append_csv([
-            epoch,
-            train_loss,
-            train_acc,
-            val_loss,
-            val_acc,
-            macro_precision,
-            macro_recall,
-            macro_f1,
-            weighted_f1,
-            c_recall,
-            cor_recall,
-            mc_recall,
-            mm_recall,
-            c_f1,
-            cor_f1,
-            mc_f1,
-            mm_f1
-        ])
+        append_csv(
+            [
+                epoch,
+                train_loss,
+                train_acc,
+                val_loss,
+                val_acc,
+                macro_precision,
+                macro_recall,
+                macro_f1,
+                weighted_f1,
+                c_recall,
+                cor_recall,
+                mc_recall,
+                mm_recall,
+                c_f1,
+                cor_f1,
+                mc_f1,
+                mm_f1,
+            ]
+        )
 
         logger.info(
             f"Epoch [{epoch}/{EPOCHS}] | "
@@ -538,9 +510,7 @@ def main():
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             no_improve = 0
-            save_checkpoint(
-                BEST_ACC_PATH, model, optimizer, epoch, metrics, train_dataset.classes
-            )
+            save_checkpoint(BEST_ACC_PATH, model, optimizer, epoch, metrics, train_dataset.classes)
             logger.info(f"Saved best_acc checkpoint to: {BEST_ACC_PATH}")
         else:
             no_improve += 1
@@ -548,24 +518,19 @@ def main():
         # 保存 best_macro_f1
         if macro_f1 > best_macro_f1:
             best_macro_f1 = macro_f1
-            save_checkpoint(
-                BEST_F1_PATH, model, optimizer, epoch, metrics, train_dataset.classes
-            )
+            save_checkpoint(BEST_F1_PATH, model, optimizer, epoch, metrics, train_dataset.classes)
             logger.info(f"Saved best_macro_f1 checkpoint to: {BEST_F1_PATH}")
 
         # 始终保存 last
-        save_checkpoint(
-            LAST_PATH, model, optimizer, epoch, metrics, train_dataset.classes
-        )
+        save_checkpoint(LAST_PATH, model, optimizer, epoch, metrics, train_dataset.classes)
 
         if no_improve >= PATIENCE:
             logger.info(
-                f"Early stopping triggered. Best Val Acc: {best_val_acc:.4f}, "
-                f"Best Macro F1: {best_macro_f1:.4f}"
+                f"Early stopping triggered. Best Val Acc: {best_val_acc:.4f}, Best Macro F1: {best_macro_f1:.4f}"
             )
             break
 
-    logger.info(f"Training finished.")
+    logger.info("Training finished.")
     logger.info(f"Best Val Acc: {best_val_acc:.4f}")
     logger.info(f"Best Macro F1: {best_macro_f1:.4f}")
 

@@ -1,7 +1,8 @@
-from pathlib import Path
 import csv
-import numpy as np
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def save_csv(path, row_labels, col_labels, mat, na_mask=None):
@@ -10,7 +11,7 @@ def save_csv(path, row_labels, col_labels, mat, na_mask=None):
 
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["true\\pred"] + col_labels)
+        writer.writerow(["true\\pred", *col_labels])
         for i, r in enumerate(row_labels):
             row = [r]
             for j, v in enumerate(mat[i]):
@@ -54,10 +55,13 @@ def plot_cm(path, title, row_labels, col_labels, mat, na_mask=None):
             else:
                 text = str(int(mat[i][j]))
             ax.text(
-                j, i, text,
-                ha="center", va="center",
+                j,
+                i,
+                text,
+                ha="center",
+                va="center",
                 color="white" if plot_mat[i, j] > max_val * 0.5 else "black",
-                fontsize=12
+                fontsize=12,
             )
 
     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
@@ -67,7 +71,9 @@ def plot_cm(path, title, row_labels, col_labels, mat, na_mask=None):
 
 
 def main():
-    out_root = Path("/root/autodl-tmp/yolo11-rk3588-grad/runs/segment/missing_coating_single_two_stage/v4_ms_tta_union/final_v5/confusion_matrices")
+    out_root = Path(
+        "/root/autodl-tmp/yolo11-rk3588-grad/runs/segment/missing_coating_single_two_stage/v4_ms_tta_union/final_v5/confusion_matrices"
+    )
     out_root.mkdir(parents=True, exist_ok=True)
 
     # ============================================================
@@ -85,8 +91,8 @@ def main():
     col_labels_det = ["missing_coating", "background"]
 
     mat_p030 = [
-        [31, 24],   # GT missing_coating: TP, FN
-        [203, 0],   # GT background: FP, TN undefined
+        [31, 24],  # GT missing_coating: TP, FN
+        [203, 0],  # GT background: FP, TN undefined
     ]
     na_det = [
         [False, False],
@@ -150,7 +156,7 @@ def main():
 
     mat_cls = [
         [124, 48],  # GT background: TN, FP
-        [24, 80],   # GT missing_coating: FN, TP
+        [24, 80],  # GT missing_coating: FN, TP
     ]
 
     save_csv(
