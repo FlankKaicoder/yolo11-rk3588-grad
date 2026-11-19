@@ -1,12 +1,14 @@
-import os
 from pathlib import Path
-import torch
-import pandas as pd
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+
 
 def ensure_dir(p):
     Path(p).mkdir(parents=True, exist_ok=True)
+
 
 def save_classifier_confmat(name, ckpt_path, out_dir):
     ckpt_path = Path(ckpt_path)
@@ -25,10 +27,12 @@ def save_classifier_confmat(name, ckpt_path, out_dir):
     # 行是真实类别，列是预测类别
     # background -> [TN, FP]
     # missing_coating -> [FN, TP]
-    mat = np.array([
-        [tn, fp],
-        [fn, tp],
-    ])
+    mat = np.array(
+        [
+            [tn, fp],
+            [fn, tp],
+        ]
+    )
 
     labels = ["background", "missing_coating"]
 
@@ -73,6 +77,7 @@ def save_classifier_confmat(name, ckpt_path, out_dir):
     print("[OK]", out_png)
     return summary
 
+
 def plot_classifier_summary(rows, out_dir):
     df = pd.DataFrame(rows)
     out_csv = Path(out_dir) / "classifier_v1_v2_v3_summary.csv"
@@ -103,12 +108,14 @@ def plot_classifier_summary(rows, out_dir):
     print("[OK]", out_png)
     print("[OK]", out_csv)
 
+
 def load_iou_summary(summary_csv):
     df = pd.read_csv(summary_csv)
     # 保证 stage1_conf 是字符串，方便画图
     df["stage1_conf"] = df["stage1_conf"].astype(str).str.zfill(3)
     df["stage2_p"] = df["stage2_p"].astype(str)
     return df
+
 
 def plot_instance_confusion_bars(df, out_dir, split="test", iou_th=0.50):
     sub = df[(df["split"] == split) & (df["iou_th"] == iou_th)].copy()
@@ -133,9 +140,9 @@ def plot_instance_confusion_bars(df, out_dir, split="test", iou_th=0.50):
 
     for conf, p in combos:
         r = sub[
-            (sub["method"] == "stage2_v3") &
-            (sub["stage1_conf"] == conf) &
-            (sub["stage2_p"].astype(str).isin([p, f"{float(p):.2f}"]))
+            (sub["method"] == "stage2_v3")
+            & (sub["stage1_conf"] == conf)
+            & (sub["stage2_p"].astype(str).isin([p, f"{float(p):.2f}"]))
         ]
         if len(r):
             rr = r.iloc[0].copy()
@@ -168,12 +175,9 @@ def plot_instance_confusion_bars(df, out_dir, split="test", iou_th=0.50):
     print("[OK]", out_png)
     print("[OK]", out_csv)
 
+
 def plot_prf_curves(df, out_dir, split="test", iou_th=0.50):
-    sub = df[
-        (df["split"] == split) &
-        (df["iou_th"] == iou_th) &
-        (df["method"] == "stage2_v3")
-    ].copy()
+    sub = df[(df["split"] == split) & (df["iou_th"] == iou_th) & (df["method"] == "stage2_v3")].copy()
 
     # stage2_p 转数字
     sub["p_float"] = sub["stage2_p"].astype(float)
@@ -200,6 +204,7 @@ def plot_prf_curves(df, out_dir, split="test", iou_th=0.50):
         fig.savefig(out_png, dpi=180)
         plt.close(fig)
         print("[OK]", out_png)
+
 
 def plot_precision_recall_scatter(df, out_dir, split="test", iou_th=0.50):
     sub = df[(df["split"] == split) & (df["iou_th"] == iou_th)].copy()
@@ -231,6 +236,7 @@ def plot_precision_recall_scatter(df, out_dir, split="test", iou_th=0.50):
     plt.close(fig)
     print("[OK]", out_png)
 
+
 def main():
     out_dir = Path("runs/segment/missing_coating_single_two_stage/report_figures")
     ensure_dir(out_dir)
@@ -252,7 +258,9 @@ def main():
         plot_classifier_summary(rows, out_dir)
 
     print("\n========== 2. System-level instance figures ==========")
-    summary_csv = Path("runs/segment/missing_coating_single_two_stage/two_stage_mask_instance_eval/mask_instance_iou_summary.csv")
+    summary_csv = Path(
+        "runs/segment/missing_coating_single_two_stage/two_stage_mask_instance_eval/mask_instance_iou_summary.csv"
+    )
 
     if not summary_csv.exists():
         print("[ERROR] missing:", summary_csv)
@@ -271,6 +279,7 @@ def main():
     plot_precision_recall_scatter(df, out_dir, split="val", iou_th=0.50)
 
     print("\n[DONE] all figures saved to:", out_dir)
+
 
 if __name__ == "__main__":
     main()

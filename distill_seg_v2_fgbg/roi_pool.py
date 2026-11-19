@@ -1,4 +1,5 @@
 import math
+
 import torch
 import torch.nn.functional as F
 
@@ -30,10 +31,10 @@ def box_to_xyxy_pixels(box, img_h, img_w, box_format="xywhn"):
 
 
 def clamp_box(x1, y1, x2, y2, h, w):
-    x1 = max(0, min(w - 1, int(math.floor(x1))))
-    y1 = max(0, min(h - 1, int(math.floor(y1))))
-    x2 = max(x1 + 1, min(w, int(math.ceil(x2))))
-    y2 = max(y1 + 1, min(h, int(math.ceil(y2))))
+    x1 = max(0, min(w - 1, math.floor(x1)))
+    y1 = max(0, min(h - 1, math.floor(y1)))
+    x2 = max(x1 + 1, min(w, math.ceil(x2)))
+    y2 = max(y1 + 1, min(h, math.ceil(y2)))
     return x1, y1, x2, y2
 
 
