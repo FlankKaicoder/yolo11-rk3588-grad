@@ -6,7 +6,6 @@ from pathlib import Path
 import cv2
 import yaml
 
-
 IMG_EXTS = [".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG"]
 
 
@@ -82,10 +81,10 @@ def make_square_crop(x1, y1, x2, y2, img_w, img_h, scale, min_size):
     side = max(side, min_size)
     side = min(side, img_w, img_h)
 
-    nx1 = int(round(cx - side / 2))
-    ny1 = int(round(cy - side / 2))
-    nx2 = int(round(cx + side / 2))
-    ny2 = int(round(cy + side / 2))
+    nx1 = round(cx - side / 2)
+    ny1 = round(cy - side / 2)
+    nx2 = round(cx + side / 2)
+    ny2 = round(cy + side / 2)
 
     if nx1 < 0:
         nx2 -= nx1
@@ -173,9 +172,7 @@ def main():
 
             for k in range(args.pos_crops_per_instance):
                 scale = random.choice([1.6, 2.0, 2.4, 2.8])
-                cx1, cy1, cx2, cy2 = make_square_crop(
-                    bx1, by1, bx2, by2, w, h, scale, args.min_crop
-                )
+                cx1, cy1, cx2, cy2 = make_square_crop(bx1, by1, bx2, by2, w, h, scale, args.min_crop)
 
                 crop_box = (cx1, cy1, cx2, cy2)
 
@@ -191,9 +188,7 @@ def main():
                         bad_partial = True
                         break
 
-                    new_coords = transform_polygon(
-                        other_coords, w, h, cx1, cy1, cx2 - cx1, cy2 - cy1
-                    )
+                    new_coords = transform_polygon(other_coords, w, h, cx1, cy1, cx2 - cx1, cy2 - cy1)
                     crop_labels.append((0, new_coords))
 
                 if bad_partial or not crop_labels:
@@ -238,7 +233,7 @@ def main():
         else:
             y1 = random.randint(0, h - side)
 
-        crop = img[y1:y1 + side, x1:x1 + side]
+        crop = img[y1 : y1 + side, x1 : x1 + side]
         crop = cv2.resize(crop, (args.crop_size, args.crop_size))
 
         out_stem = f"crop_neg_{lbl_path.stem}_{i}"

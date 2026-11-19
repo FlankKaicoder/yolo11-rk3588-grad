@@ -1,18 +1,17 @@
+from __future__ import annotations
+
 import argparse
 import csv
 import json
-import os
 import random
 import time
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import ImageFile
-
 import torch
-import torch.nn as nn
+from PIL import ImageFile
+from torch import nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
@@ -61,23 +60,25 @@ def ensure_dir(path: Path):
 
 
 def build_transforms(img_size: int):
-    train_tf = transforms.Compose([
-        transforms.Resize((img_size + 32, img_size + 32)),
-        transforms.RandomResizedCrop(img_size, scale=(0.8, 1.0)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.2),
-        transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.1, hue=0.02),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.Resize((img_size + 32, img_size + 32)),
+            transforms.RandomResizedCrop(img_size, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.1, hue=0.02),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((img_size, img_size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((img_size, img_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
     return train_tf, val_tf
 
 
@@ -96,9 +97,7 @@ def build_dataloaders(data_root: Path, img_size: int, batch_size: int, num_worke
     val_set = datasets.ImageFolder(val_dir, transform=val_tf)
 
     if train_set.class_to_idx != val_set.class_to_idx:
-        raise RuntimeError(
-            f"class_to_idx mismatch: train={train_set.class_to_idx}, val={val_set.class_to_idx}"
-        )
+        raise RuntimeError(f"class_to_idx mismatch: train={train_set.class_to_idx}, val={val_set.class_to_idx}")
 
     train_loader = DataLoader(
         train_set,
@@ -127,6 +126,7 @@ def build_model(num_classes: int, pretrained: bool) -> nn.Module:
     if pretrained:
         try:
             from torchvision.models import ResNet18_Weights
+
             model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
             print("[Info] Loaded ImageNet pretrained ResNet18.")
         except Exception as e:
@@ -141,8 +141,8 @@ def build_model(num_classes: int, pretrained: bool) -> nn.Module:
 
 
 def compute_confusion_matrix(
-    y_true: List[int],
-    y_pred: List[int],
+    y_true: list[int],
+    y_pred: list[int],
     num_classes: int,
 ) -> np.ndarray:
     cm = np.zeros((num_classes, num_classes), dtype=np.int64)  # rows=true, cols=pred
@@ -151,8 +151,8 @@ def compute_confusion_matrix(
     return cm
 
 
-def compute_metrics_from_cm(cm: np.ndarray, class_names: List[str]) -> Dict:
-    num_classes = len(class_names)
+def compute_metrics_from_cm(cm: np.ndarray, class_names: list[str]) -> dict:
+    len(class_names)
     total = cm.sum()
     correct = np.trace(cm)
     acc = correct / total if total > 0 else 0.0
@@ -186,7 +186,7 @@ def compute_metrics_from_cm(cm: np.ndarray, class_names: List[str]) -> Dict:
     }
 
 
-def save_confusion_matrix_figure(cm: np.ndarray, class_names: List[str], save_path: Path, title: str):
+def save_confusion_matrix_figure(cm: np.ndarray, class_names: list[str], save_path: Path, title: str):
     fig, ax = plt.subplots(figsize=(6, 5))
     im = ax.imshow(cm, cmap="Blues")
     ax.set_xticks(range(len(class_names)))
@@ -207,7 +207,7 @@ def save_confusion_matrix_figure(cm: np.ndarray, class_names: List[str], save_pa
     plt.close(fig)
 
 
-def save_history_plot(history: List[Dict], save_dir: Path):
+def save_history_plot(history: list[dict], save_dir: Path):
     ensure_dir(save_dir)
 
     epochs = [h["epoch"] for h in history]
@@ -239,7 +239,7 @@ def save_history_plot(history: List[Dict], save_dir: Path):
     plt.close()
 
 
-def save_history_csv(history: List[Dict], save_path: Path):
+def save_history_csv(history: list[dict], save_path: Path):
     if not history:
         return
     ensure_dir(save_path.parent)
@@ -273,7 +273,7 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
 
 
 @torch.no_grad()
-def evaluate(model, loader, criterion, device, class_names: List[str]):
+def evaluate(model, loader, criterion, device, class_names: list[str]):
     model.eval()
     running_loss = 0.0
     total = 0
@@ -310,8 +310,8 @@ def save_checkpoint(
     scheduler,
     epoch: int,
     best_metric: float,
-    class_to_idx: Dict[str, int],
-    history: List[Dict],
+    class_to_idx: dict[str, int],
+    history: list[dict],
     args,
 ):
     ensure_dir(save_path.parent)

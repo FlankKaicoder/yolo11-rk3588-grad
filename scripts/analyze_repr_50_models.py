@@ -1,23 +1,20 @@
 import json
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms, models
-
 from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, f1_score
 from sklearn.manifold import TSNE
-from sklearn.preprocessing import StandardScaler, Normalizer
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
-
-import matplotlib.pyplot as plt
-
+from sklearn.preprocessing import Normalizer, StandardScaler
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import datasets, models, transforms
 
 # =========================
 # 基础配置
@@ -44,23 +41,43 @@ MODEL_CONFIGS = [
     {
         "name": "ce50_bestf1",
         "type": "ce",
-        "ckpt": PROJECT_ROOT / "runs" / "patch_cls" / "patch_ce_resnet18_fix_nosampler_v1" / "checkpoints" / "best_macro_f1.pth",
+        "ckpt": PROJECT_ROOT
+        / "runs"
+        / "patch_cls"
+        / "patch_ce_resnet18_fix_nosampler_v1"
+        / "checkpoints"
+        / "best_macro_f1.pth",
     },
     {
         "name": "bcl50_bestf1",
         "type": "bcl",
-        "ckpt": PROJECT_ROOT / "runs" / "patch_cls" / "patch_bcl_resnet18_fix_nosampler_ce_v1" / "checkpoints" / "best_macro_f1.pth",
+        "ckpt": PROJECT_ROOT
+        / "runs"
+        / "patch_cls"
+        / "patch_bcl_resnet18_fix_nosampler_ce_v1"
+        / "checkpoints"
+        / "best_macro_f1.pth",
     },
     {
         # 这里请你自己填第一次两阶段（非经典冻结）的真实路径
         "name": "bcl2stage50_direct_bestf1",
         "type": "bcl",
-        "ckpt": PROJECT_ROOT / "runs" / "patch_cls" / "patch_bcl_2stage_resnet18_fix_nosampler_v1" / "checkpoints" / "best_macro_f1.pth",
+        "ckpt": PROJECT_ROOT
+        / "runs"
+        / "patch_cls"
+        / "patch_bcl_2stage_resnet18_fix_nosampler_v1"
+        / "checkpoints"
+        / "best_macro_f1.pth",
     },
     {
         "name": "bcl2stage50_freeze_bestf1",
         "type": "bcl",
-        "ckpt": PROJECT_ROOT / "runs" / "patch_cls" / "patch_bcl_2stage_freeze_resnet18_fix_nosampler_ep50_v3" / "checkpoints" / "best_macro_f1.pth",
+        "ckpt": PROJECT_ROOT
+        / "runs"
+        / "patch_cls"
+        / "patch_bcl_2stage_freeze_resnet18_fix_nosampler_ep50_v3"
+        / "checkpoints"
+        / "best_macro_f1.pth",
     },
 ]
 
@@ -74,11 +91,13 @@ def set_seed(seed=42):
 def build_transform():
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
-    tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std),
-    ])
+    tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+        ]
+    )
     return tf
 
 
@@ -131,11 +150,7 @@ class BCLResNet18(nn.Module):
         in_features = backbone.fc.in_features
         backbone.fc = nn.Identity()
         self.encoder = backbone
-        self.projector = nn.Sequential(
-            nn.Linear(in_features, 512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, feat_dim)
-        )
+        self.projector = nn.Sequential(nn.Linear(in_features, 512), nn.ReLU(inplace=True), nn.Linear(512, feat_dim))
         self.classifier = nn.Linear(in_features, num_classes)
 
     def forward(self, x):
@@ -214,14 +229,9 @@ def save_feature_npz(out_dir, split_name, feats, labels, paths, class_names):
 
 
 def run_linear_probe(train_X, train_y, val_X, val_y, class_names, out_dir):
-    clf = Pipeline([
-        ("scaler", StandardScaler()),
-        ("lr", LogisticRegression(
-            max_iter=5000,
-            solver="lbfgs",
-            random_state=SEED
-        ))
-    ])
+    clf = Pipeline(
+        [("scaler", StandardScaler()), ("lr", LogisticRegression(max_iter=5000, solver="lbfgs", random_state=SEED))]
+    )
     clf.fit(train_X, train_y)
     pred = clf.predict(val_X)
 
@@ -243,10 +253,7 @@ def run_linear_probe(train_X, train_y, val_X, val_y, class_names, out_dir):
 
 
 def run_knn(train_X, train_y, val_X, val_y, class_names, out_dir, k=5):
-    clf = Pipeline([
-        ("norm", Normalizer(norm="l2")),
-        ("knn", KNeighborsClassifier(n_neighbors=k, metric="euclidean"))
-    ])
+    clf = Pipeline([("norm", Normalizer(norm="l2")), ("knn", KNeighborsClassifier(n_neighbors=k, metric="euclidean"))])
     clf.fit(train_X, train_y)
     pred = clf.predict(val_X)
 
@@ -281,15 +288,17 @@ def compute_center_and_intra_stats(features, labels, class_names, out_dir, split
         centers[c] = center
 
         dists = np.linalg.norm(class_feats - center, axis=1)
-        intra_rows.append({
-            "split": split_name,
-            "class_idx": int(c),
-            "class_name": class_names[c],
-            "num_samples": len(class_feats),
-            "mean_dist_to_center": float(dists.mean()),
-            "std_dist_to_center": float(dists.std()),
-            "variance_mean": float(np.var(class_feats, axis=0).mean()),
-        })
+        intra_rows.append(
+            {
+                "split": split_name,
+                "class_idx": int(c),
+                "class_name": class_names[c],
+                "num_samples": len(class_feats),
+                "mean_dist_to_center": float(dists.mean()),
+                "std_dist_to_center": float(dists.std()),
+                "variance_mean": float(np.var(class_feats, axis=0).mean()),
+            }
+        )
 
     intra_df = pd.DataFrame(intra_rows)
     intra_df.to_csv(out_dir / f"{split_name}_intra_class_stats.csv", index=False, encoding="utf-8-sig")
@@ -324,13 +333,7 @@ def compute_center_and_intra_stats(features, labels, class_names, out_dir, split
 def plot_tsne(features, labels, class_names, out_path, title):
     n = len(features)
     perplexity = min(30, max(5, n // 5))
-    tsne = TSNE(
-        n_components=2,
-        perplexity=perplexity,
-        init="pca",
-        learning_rate="auto",
-        random_state=SEED
-    )
+    tsne = TSNE(n_components=2, perplexity=perplexity, init="pca", learning_rate="auto", random_state=SEED)
     emb = tsne.fit_transform(features)
 
     plt.figure(figsize=(8, 6))
@@ -360,19 +363,9 @@ def analyze_one_model(cfg, train_dataset, val_dataset):
     num_classes = len(class_names)
 
     train_loader = DataLoader(
-        train_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS,
-        pin_memory=True
+        train_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True
     )
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS,
-        pin_memory=True
-    )
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
     model = build_model(model_type, num_classes).to(DEVICE)
     missing, unexpected = load_checkpoint(model, ckpt_path)
@@ -384,8 +377,7 @@ def analyze_one_model(cfg, train_dataset, val_dataset):
     # 如果 CE 模型还出现整片 missing/unexpected，直接报错，别继续分析假特征
     if model_type == "ce" and (len(missing) > 10 or len(unexpected) > 10):
         raise RuntimeError(
-            f"{model_name} checkpoint did not load correctly. "
-            f"Please check key prefix mapping before continuing."
+            f"{model_name} checkpoint did not load correctly. Please check key prefix mapping before continuing."
         )
 
     train_X, train_y, train_paths = extract_features(model, train_loader)
@@ -406,11 +398,7 @@ def analyze_one_model(cfg, train_dataset, val_dataset):
     summary.update(compute_center_and_intra_stats(val_X, val_y, class_names, model_out_dir, "val"))
 
     # 先只画 val 特征的 t-SNE，避免图太多
-    plot_tsne(
-        val_X, val_y, class_names,
-        model_out_dir / "val_tsne.png",
-        title=f"{model_name} - val t-SNE"
-    )
+    plot_tsne(val_X, val_y, class_names, model_out_dir / "val_tsne.png", title=f"{model_name} - val t-SNE")
 
     with open(model_out_dir / "summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)

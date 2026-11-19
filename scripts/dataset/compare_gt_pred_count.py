@@ -1,7 +1,8 @@
-from pathlib import Path
 import argparse
+from pathlib import Path
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".PNG", ".JPEG"}
+
 
 def count_lines(p: Path):
     if not p.exists():
@@ -10,6 +11,7 @@ def count_lines(p: Path):
     if not txt:
         return 0
     return len(txt.splitlines())
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -46,6 +48,7 @@ def main():
         elif gt > 0 and p15 < gt:
             comment = "possible_under_detect"
         print(f"{name},{gt},{p15},{p20},{comment}")
+
 
 if __name__ == "__main__":
     main()

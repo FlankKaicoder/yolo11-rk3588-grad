@@ -1,11 +1,11 @@
 import torch
-from ultralytics.nn.tasks import SegmentationModel
 
 from distill_seg_v2_fgbg.adapter import StudentAdapter
+from distill_seg_v2_fgbg.fgbg_sampler import collect_pos_neg_boxes
 from distill_seg_v2_fgbg.losses import cosine_distill_loss
 from distill_seg_v2_fgbg.roi_pool import crop_image_tensor, pool_feature_from_box
 from distill_seg_v2_fgbg.teacher_wrapper import BinaryTeacher
-from distill_seg_v2_fgbg.fgbg_sampler import collect_pos_neg_boxes
+from ultralytics.nn.tasks import SegmentationModel
 
 
 class DistillSegCriterion:
@@ -23,7 +23,7 @@ class DistillSegCriterion:
 
         for bi, box_xyxy in sampled_boxes:
             crop = crop_image_tensor(
-                imgs[bi:bi + 1],
+                imgs[bi : bi + 1],
                 box_xyxy,
                 box_format="xyxy",
             )
@@ -31,7 +31,7 @@ class DistillSegCriterion:
                 continue
 
             roi_feat = pool_feature_from_box(
-                feat[bi:bi + 1],
+                feat[bi : bi + 1],
                 box_xyxy,
                 img_h,
                 img_w,
@@ -41,9 +41,9 @@ class DistillSegCriterion:
                 continue
 
             with torch.no_grad():
-                t = self.model.teacher(crop)   # [1, 512]
+                t = self.model.teacher(crop)  # [1, 512]
 
-            s = self.model.adapter(roi_feat)   # [1, 512]
+            s = self.model.adapter(roi_feat)  # [1, 512]
 
             teacher_feats.append(t)
             student_feats.append(s)

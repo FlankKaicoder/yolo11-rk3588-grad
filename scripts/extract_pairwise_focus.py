@@ -1,5 +1,6 @@
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 BASE = Path("/root/autodl-tmp/yolo11-rk3588-grad/runs/repr_analysis_50_models_v1")
 
@@ -22,11 +23,13 @@ rows = []
 for model_name, csv_path in MODELS.items():
     df = pd.read_csv(csv_path, index_col=0)
     for a, b in FOCUS_PAIRS:
-        rows.append({
-            "model": model_name,
-            "pair": f"{a} <-> {b}",
-            "distance": float(df.loc[a, b]),
-        })
+        rows.append(
+            {
+                "model": model_name,
+                "pair": f"{a} <-> {b}",
+                "distance": float(df.loc[a, b]),
+            }
+        )
 
 out_df = pd.DataFrame(rows)
 print(out_df)

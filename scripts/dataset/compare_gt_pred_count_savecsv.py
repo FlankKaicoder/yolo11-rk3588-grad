@@ -4,6 +4,7 @@ from pathlib import Path
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"}
 
+
 def count_instances(label_path: Path) -> int:
     if not label_path.exists():
         return 0
@@ -11,6 +12,7 @@ def count_instances(label_path: Path) -> int:
     if txt == "":
         return 0
     return len([line for line in txt.splitlines() if line.strip()])
+
 
 def classify_case(gt, p15, p20):
     # 两个阈值都完全漏检
@@ -34,6 +36,7 @@ def classify_case(gt, p15, p20):
         return "threshold_sensitive"
 
     return "ok_count"
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -61,15 +64,17 @@ def main():
         p20 = count_instances(p20_dir / f"{stem}.txt")
         case = classify_case(gt, p15, p20)
 
-        rows.append({
-            "image": img.name,
-            "gt_count": gt,
-            "pred015_count": p15,
-            "pred020_count": p20,
-            "case": case,
-            "diff015_minus_gt": p15 - gt,
-            "diff020_minus_gt": p20 - gt,
-        })
+        rows.append(
+            {
+                "image": img.name,
+                "gt_count": gt,
+                "pred015_count": p15,
+                "pred020_count": p20,
+                "case": case,
+                "diff015_minus_gt": p15 - gt,
+                "diff020_minus_gt": p20 - gt,
+            }
+        )
 
     with out_csv.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
@@ -91,6 +96,7 @@ def main():
     print(f"[INFO] images: {len(rows)}")
 
     from collections import Counter
+
     c = Counter(r["case"] for r in rows)
     print("\n[CASE COUNTS]")
     for k, v in c.most_common():
@@ -103,6 +109,7 @@ def main():
     print("gt positive images:", sum(1 for r in rows if r["gt_count"] > 0))
     print("pred015 positive images:", sum(1 for r in rows if r["pred015_count"] > 0))
     print("pred020 positive images:", sum(1 for r in rows if r["pred020_count"] > 0))
+
 
 if __name__ == "__main__":
     main()

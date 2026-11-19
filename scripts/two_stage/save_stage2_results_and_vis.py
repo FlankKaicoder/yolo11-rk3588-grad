@@ -1,8 +1,8 @@
 import argparse
 import csv
 import shutil
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
@@ -16,6 +16,7 @@ COLORS = {
     "v3": (255, 0, 120),
 }
 
+
 def count_txt(path):
     if not path.exists():
         return 0
@@ -23,6 +24,7 @@ def count_txt(path):
     if txt == "":
         return 0
     return len([x for x in txt.splitlines() if x.strip()])
+
 
 def classify(gt, pred):
     if gt > 0 and pred == 0:
@@ -34,6 +36,7 @@ def classify(gt, pred):
     if gt > 0 and 0 < pred < gt:
         return "under"
     return "ok"
+
 
 def parse_label_line(line, has_conf):
     vals = list(map(float, line.strip().split()))
@@ -57,6 +60,7 @@ def parse_label_line(line, has_conf):
 
     pts = list(zip(coords[0::2], coords[1::2]))
     return pts, conf
+
 
 def draw_overlay(img_path, label_path, title, color, has_conf):
     img = Image.open(img_path).convert("RGB")
@@ -107,6 +111,7 @@ def draw_overlay(img_path, label_path, title, color, has_conf):
 
     return panel
 
+
 def hcat_panels(panels):
     max_h = max(p.height for p in panels)
     total_w = sum(p.width for p in panels)
@@ -118,6 +123,7 @@ def hcat_panels(panels):
         x += p.width
     return canvas
 
+
 def copy_label_dir(src, dst):
     dst.mkdir(parents=True, exist_ok=True)
     if not src.exists():
@@ -126,6 +132,7 @@ def copy_label_dir(src, dst):
     for f in src.glob("*.txt"):
         shutil.copy2(f, dst / f.name)
 
+
 def eval_one_method(images, gt_dir, pred_dir):
     rows = []
     for img_path in images:
@@ -133,14 +140,17 @@ def eval_one_method(images, gt_dir, pred_dir):
         gt = count_txt(gt_dir / f"{stem}.txt")
         pred = count_txt(pred_dir / f"{stem}.txt")
         case = classify(gt, pred)
-        rows.append({
-            "image": img_path.name,
-            "gt_count": gt,
-            "pred_count": pred,
-            "case": case,
-            "diff_pred_minus_gt": pred - gt,
-        })
+        rows.append(
+            {
+                "image": img_path.name,
+                "gt_count": gt,
+                "pred_count": pred,
+                "case": case,
+                "diff_pred_minus_gt": pred - gt,
+            }
+        )
     return rows
+
 
 def write_rows_csv(rows, path):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -150,6 +160,7 @@ def write_rows_csv(rows, path):
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
+
 
 def summarize_rows(rows):
     c = Counter(r["case"] for r in rows)
@@ -165,6 +176,7 @@ def summarize_rows(rows):
         "pred_pos": sum(1 for r in rows if r["pred_count"] > 0),
     }
 
+
 def save_summary_txt(summary_rows, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
@@ -176,6 +188,7 @@ def save_summary_txt(summary_rows, path):
                 f"gt={r['gt_total']:3d} pred={r['pred_total']:3d} "
                 f"gt_pos={r['gt_pos']:3d} pred_pos={r['pred_pos']:3d}\n"
             )
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -271,10 +284,30 @@ def main():
 
                 panels = [
                     draw_overlay(img_path, gt_dir / f"{img_path.stem}.txt", "GT", COLORS["gt"], has_conf=False),
-                    draw_overlay(img_path, stage1_dir / f"{img_path.stem}.txt", "Stage1", COLORS["stage1"], has_conf=True),
-                    draw_overlay(img_path, dirs_for_vis["v1"] / f"{img_path.stem}.txt", f"v1 {th_name}", COLORS["v1"], has_conf=True),
-                    draw_overlay(img_path, dirs_for_vis["v2"] / f"{img_path.stem}.txt", f"v2 {th_name}", COLORS["v2"], has_conf=True),
-                    draw_overlay(img_path, dirs_for_vis["v3"] / f"{img_path.stem}.txt", f"v3 {th_name}", COLORS["v3"], has_conf=True),
+                    draw_overlay(
+                        img_path, stage1_dir / f"{img_path.stem}.txt", "Stage1", COLORS["stage1"], has_conf=True
+                    ),
+                    draw_overlay(
+                        img_path,
+                        dirs_for_vis["v1"] / f"{img_path.stem}.txt",
+                        f"v1 {th_name}",
+                        COLORS["v1"],
+                        has_conf=True,
+                    ),
+                    draw_overlay(
+                        img_path,
+                        dirs_for_vis["v2"] / f"{img_path.stem}.txt",
+                        f"v2 {th_name}",
+                        COLORS["v2"],
+                        has_conf=True,
+                    ),
+                    draw_overlay(
+                        img_path,
+                        dirs_for_vis["v3"] / f"{img_path.stem}.txt",
+                        f"v3 {th_name}",
+                        COLORS["v3"],
+                        has_conf=True,
+                    ),
                 ]
 
                 canvas = hcat_panels(panels)
@@ -291,6 +324,7 @@ def main():
     print("\n[OK] all saved to:", out_root)
     print("[OK] summary csv:", summary_csv)
     print("[OK] summary txt:", out_root / "summary_all_methods.txt")
+
 
 if __name__ == "__main__":
     main()

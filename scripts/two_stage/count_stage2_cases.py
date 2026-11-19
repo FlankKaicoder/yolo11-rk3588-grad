@@ -1,8 +1,9 @@
 import argparse
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"}
+
 
 def count_txt(path):
     if not path.exists():
@@ -11,6 +12,7 @@ def count_txt(path):
     if txt == "":
         return 0
     return len([x for x in txt.splitlines() if x.strip()])
+
 
 def classify(gt, pred):
     if gt > 0 and pred == 0:
@@ -22,6 +24,7 @@ def classify(gt, pred):
     if gt > 0 and 0 < pred < gt:
         return "under"
     return "ok"
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -63,6 +66,7 @@ def main():
         for name, gt, pred, case in rows:
             if case != "ok":
                 print(f"  {case:15s} gt={gt:<2d} pred={pred:<2d} {name}")
+
 
 if __name__ == "__main__":
     main()

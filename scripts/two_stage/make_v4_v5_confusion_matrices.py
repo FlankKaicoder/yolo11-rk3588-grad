@@ -1,7 +1,8 @@
-from pathlib import Path
 import csv
-import numpy as np
+from pathlib import Path
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def save_csv(path, row_labels, col_labels, mat, na_mask=None):
@@ -10,7 +11,7 @@ def save_csv(path, row_labels, col_labels, mat, na_mask=None):
 
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["true\\pred"] + col_labels)
+        writer.writerow(["true\\pred", *col_labels])
         for i, r in enumerate(row_labels):
             row = [r]
             for j, v in enumerate(mat[i]):
@@ -54,11 +55,13 @@ def plot_cm(path, title, row_labels, col_labels, mat, na_mask=None):
             else:
                 text = str(int(mat[i][j]))
             ax.text(
-                j, i, text,
+                j,
+                i,
+                text,
                 ha="center",
                 va="center",
                 color="white" if plot_mat[i, j] > max_val * 0.5 else "black",
-                fontsize=12
+                fontsize=12,
             )
 
     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)

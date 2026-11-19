@@ -2,9 +2,11 @@ import argparse
 import csv
 import random
 from pathlib import Path
+
 from PIL import Image
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"}
+
 
 def parse_seg_label(path, has_conf=False):
     items = []
@@ -36,14 +38,17 @@ def parse_seg_label(path, has_conf=False):
             continue
 
         x1, y1, x2, y2 = min(xs), min(ys), max(xs), max(ys)
-        items.append({
-            "cls": cls,
-            "conf": conf,
-            "bbox": [x1, y1, x2, y2],
-            "line": line,
-        })
+        items.append(
+            {
+                "cls": cls,
+                "conf": conf,
+                "bbox": [x1, y1, x2, y2],
+                "line": line,
+            }
+        )
 
     return items
+
 
 def iou_box(a, b):
     ax1, ay1, ax2, ay2 = a
@@ -59,6 +64,7 @@ def iou_box(a, b):
     union = area_a + area_b - inter + 1e-9
     return inter / union
 
+
 def expand_to_square_pixel(bbox_n, w, h, expand=1.3):
     x1, y1, x2, y2 = bbox_n
     x1, x2 = x1 * w, x2 * w
@@ -70,10 +76,10 @@ def expand_to_square_pixel(bbox_n, w, h, expand=1.3):
     bh = max(2.0, y2 - y1)
     side = max(bw, bh) * expand
 
-    nx1 = int(round(cx - side / 2))
-    ny1 = int(round(cy - side / 2))
-    nx2 = int(round(cx + side / 2))
-    ny2 = int(round(cy + side / 2))
+    nx1 = round(cx - side / 2)
+    ny1 = round(cy - side / 2)
+    nx2 = round(cx + side / 2)
+    ny2 = round(cy + side / 2)
 
     nx1 = max(0, nx1)
     ny1 = max(0, ny1)
@@ -85,6 +91,7 @@ def expand_to_square_pixel(bbox_n, w, h, expand=1.3):
 
     return nx1, ny1, nx2, ny2
 
+
 def random_square_box(w, h, rng):
     short = min(w, h)
     side = rng.randint(max(48, int(short * 0.12)), max(64, int(short * 0.35)))
@@ -93,14 +100,17 @@ def random_square_box(w, h, rng):
     y1 = rng.randint(0, max(0, h - side))
     return x1, y1, x1 + side, y1 + side
 
+
 def pixel_to_norm_box(box, w, h):
     x1, y1, x2, y2 = box
     return [x1 / w, y1 / h, x2 / w, y2 / h]
+
 
 def save_crop(img, box, save_path):
     crop = img.crop(box)
     crop = crop.resize((224, 224))
     crop.save(save_path, quality=95)
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -170,15 +180,17 @@ def main():
             save_path = out_dir / split / "missing_coating" / save_name
             save_crop(img, box, save_path)
 
-            rows.append({
-                "split": split,
-                "class": "missing_coating",
-                "source": "gt_positive",
-                "image": img_path.name,
-                "crop": str(save_path),
-                "conf": "",
-                "max_iou_gt": 1.0,
-            })
+            rows.append(
+                {
+                    "split": split,
+                    "class": "missing_coating",
+                    "source": "gt_positive",
+                    "image": img_path.name,
+                    "crop": str(save_path),
+                    "conf": "",
+                    "max_iou_gt": 1.0,
+                }
+            )
             counters["pos"] += 1
 
         # 2) YOLO hard false positive crops
@@ -200,15 +212,17 @@ def main():
                 save_path = out_dir / split / "background" / save_name
                 save_crop(img, box, save_path)
 
-                rows.append({
-                    "split": split,
-                    "class": "background",
-                    "source": "hard_false_positive",
-                    "image": img_path.name,
-                    "crop": str(save_path),
-                    "conf": conf,
-                    "max_iou_gt": max_iou,
-                })
+                rows.append(
+                    {
+                        "split": split,
+                        "class": "background",
+                        "source": "hard_false_positive",
+                        "image": img_path.name,
+                        "crop": str(save_path),
+                        "conf": conf,
+                        "max_iou_gt": max_iou,
+                    }
+                )
                 counters["hard_neg"] += 1
 
         # 3) random negative crops
@@ -239,15 +253,17 @@ def main():
             save_path = out_dir / split / "background" / save_name
             save_crop(img, pix_box, save_path)
 
-            rows.append({
-                "split": split,
-                "class": "background",
-                "source": src_name,
-                "image": img_path.name,
-                "crop": str(save_path),
-                "conf": "",
-                "max_iou_gt": max_iou,
-            })
+            rows.append(
+                {
+                    "split": split,
+                    "class": "background",
+                    "source": src_name,
+                    "image": img_path.name,
+                    "crop": str(save_path),
+                    "conf": "",
+                    "max_iou_gt": max_iou,
+                }
+            )
             counters[counter_key] += 1
             made += 1
 
@@ -268,6 +284,7 @@ def main():
         for cls in ["missing_coating", "background"]:
             n = len(list((out_dir / split / cls).glob("*.jpg")))
             print(f"{split}/{cls}: {n}")
+
 
 if __name__ == "__main__":
     main()

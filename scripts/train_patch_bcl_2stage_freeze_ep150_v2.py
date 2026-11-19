@@ -1,31 +1,28 @@
-import os
 import csv
 import json
-import time
-import random
 import logging
-from pathlib import Path
+import random
+import time
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms, models
 from sklearn.metrics import classification_report, confusion_matrix
-
+from torch import nn, optim
+from torch.utils.data import DataLoader
+from torchvision import datasets, models, transforms
 
 SEED = 42
 IMG_SIZE = 224
 BATCH_SIZE = 32
 TOTAL_EPOCHS = 150
 
-STAGE1_EPOCHS = 60   # BCL 预训练
-PHASE1_EPOCHS = 10   # 只训 classifier
-PHASE2_EPOCHS = 20   # 解冻 layer4 + classifier
-PHASE3_EPOCHS = 60   # 全网络小学习率微调
+STAGE1_EPOCHS = 60  # BCL 预训练
+PHASE1_EPOCHS = 10  # 只训 classifier
+PHASE2_EPOCHS = 20  # 解冻 layer4 + classifier
+PHASE3_EPOCHS = 60  # 全网络小学习率微调
 
 assert STAGE1_EPOCHS + PHASE1_EPOCHS + PHASE2_EPOCHS + PHASE3_EPOCHS == TOTAL_EPOCHS
 
@@ -119,7 +116,7 @@ def save_config():
             "Two-stage BCL, 150 epochs total, same pipeline as CE-only and single-stage BCL. "
             "Stage1=60 epochs BCL pretrain. Stage2 classic freeze finetune: "
             "10 classifier-only + 20 layer4+classifier + 60 full-network low-lr."
-        )
+        ),
     }
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2, ensure_ascii=False)
@@ -129,20 +126,24 @@ def build_transforms():
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
 
-    train_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.2),
-        transforms.RandomRotation(3),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std),
-    ])
+    train_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.2),
+            transforms.RandomRotation(3),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+        ]
+    )
 
-    val_tf = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std),
-    ])
+    val_tf = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std),
+        ]
+    )
     return train_tf, val_tf
 
 
@@ -208,11 +209,7 @@ class BCLResNet18(nn.Module):
         in_features = backbone.fc.in_features
         backbone.fc = nn.Identity()
         self.encoder = backbone
-        self.projector = nn.Sequential(
-            nn.Linear(in_features, 512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, feat_dim)
-        )
+        self.projector = nn.Sequential(nn.Linear(in_features, 512), nn.ReLU(inplace=True), nn.Linear(512, feat_dim))
         self.classifier = nn.Linear(in_features, num_classes)
 
     def forward(self, x):
@@ -235,7 +232,7 @@ class BalancedContrastiveLoss(nn.Module):
 
     def forward(self, features, labels):
         device = features.device
-        bsz, n_views, dim = features.shape
+        _bsz, n_views, _dim = features.shape
 
         features = F.normalize(features, dim=2)
         contrast_feature = torch.cat(torch.unbind(features, dim=1), dim=0)
@@ -281,25 +278,27 @@ def append_stage1_csv(row):
 
 def init_stage2_csv():
     with open(STAGE2_CSV_PATH, "w", newline="", encoding="utf-8") as f:
-        csv.writer(f).writerow([
-            "epoch",
-            "train_loss",
-            "train_acc",
-            "val_loss",
-            "val_acc",
-            "macro_precision",
-            "macro_recall",
-            "macro_f1",
-            "weighted_f1",
-            "carbon_recall",
-            "corrosion_recall",
-            "missing_coating_recall",
-            "missing_material_recall",
-            "carbon_f1",
-            "corrosion_f1",
-            "missing_coating_f1",
-            "missing_material_f1"
-        ])
+        csv.writer(f).writerow(
+            [
+                "epoch",
+                "train_loss",
+                "train_acc",
+                "val_loss",
+                "val_acc",
+                "macro_precision",
+                "macro_recall",
+                "macro_f1",
+                "weighted_f1",
+                "carbon_recall",
+                "corrosion_recall",
+                "missing_coating_recall",
+                "missing_material_recall",
+                "carbon_f1",
+                "corrosion_f1",
+                "missing_coating_f1",
+                "missing_material_f1",
+            ]
+        )
 
 
 def append_stage2_csv(row):
@@ -432,11 +431,7 @@ def evaluate(model, loader, ce_criterion, class_names, epoch):
         all_paths.extend(list(paths))
 
     report_dict = classification_report(
-        all_labels, all_preds,
-        target_names=class_names,
-        digits=4,
-        output_dict=True,
-        zero_division=0
+        all_labels, all_preds, target_names=class_names, digits=4, output_dict=True, zero_division=0
     )
     cm = confusion_matrix(all_labels, all_preds)
 
@@ -445,14 +440,9 @@ def evaluate(model, loader, ce_criterion, class_names, epoch):
         "classification_report": report_dict,
         "confusion_matrix": cm.tolist(),
         "samples": [
-            {
-                "path": p,
-                "y_true": int(y),
-                "y_pred": int(pred),
-                "probs": [float(x) for x in prob]
-            }
+            {"path": p, "y_true": int(y), "y_pred": int(pred), "probs": [float(x) for x in prob]}
             for p, y, pred, prob in zip(all_paths, all_labels, all_preds, all_probs)
-        ]
+        ],
     }
     with open(REPORT_DIR / f"epoch_{epoch:03d}_report.json", "w", encoding="utf-8") as f:
         json.dump(report_save, f, indent=2, ensure_ascii=False)
@@ -499,27 +489,12 @@ def main():
         logger.info(f"class_idx={cls_idx}, count={cnt}, class_name={stage2_train_dataset.classes[cls_idx]}")
 
     stage1_loader = DataLoader(
-        stage1_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=NUM_WORKERS,
-        pin_memory=True,
-        drop_last=True
+        stage1_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True, drop_last=True
     )
     stage2_train_loader = DataLoader(
-        stage2_train_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=NUM_WORKERS,
-        pin_memory=True
+        stage2_train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True
     )
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS,
-        pin_memory=True
-    )
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, pin_memory=True)
 
     model = BCLResNet18(num_classes).to(DEVICE)
 
@@ -529,9 +504,7 @@ def main():
     logger.info("========== Stage1: BCL pretraining ==========")
     bcl_criterion = BalancedContrastiveLoss(TEMPERATURE).to(DEVICE)
     stage1_optimizer = optim.AdamW(
-        list(model.encoder.parameters()) + list(model.projector.parameters()),
-        lr=LR_STAGE1,
-        weight_decay=WEIGHT_DECAY
+        list(model.encoder.parameters()) + list(model.projector.parameters()), lr=LR_STAGE1, weight_decay=WEIGHT_DECAY
     )
     stage1_scheduler = optim.lr_scheduler.CosineAnnealingLR(stage1_optimizer, T_max=STAGE1_EPOCHS)
 
@@ -556,14 +529,24 @@ def main():
         if stage1_loss < best_stage1_loss:
             best_stage1_loss = stage1_loss
             save_checkpoint(
-                STAGE1_BEST_PATH, model, stage1_optimizer, epoch, stage1_metrics,
-                stage2_train_dataset.classes, "stage1_pretrain"
+                STAGE1_BEST_PATH,
+                model,
+                stage1_optimizer,
+                epoch,
+                stage1_metrics,
+                stage2_train_dataset.classes,
+                "stage1_pretrain",
             )
             logger.info(f"Saved stage1 best checkpoint to: {STAGE1_BEST_PATH}")
 
         save_checkpoint(
-            STAGE1_LAST_PATH, model, stage1_optimizer, epoch, stage1_metrics,
-            stage2_train_dataset.classes, "stage1_pretrain"
+            STAGE1_LAST_PATH,
+            model,
+            stage1_optimizer,
+            epoch,
+            stage1_metrics,
+            stage2_train_dataset.classes,
+            "stage1_pretrain",
         )
 
     logger.info(f"Stage1 finished. Best BCL Loss: {best_stage1_loss:.4f}")
@@ -602,12 +585,27 @@ def main():
         c_recall, cor_recall, mc_recall, mm_recall = metrics["per_class_recall"]
         c_f1, cor_f1, mc_f1, mm_f1 = metrics["per_class_f1"]
 
-        append_stage2_csv([
-            global_epoch, train_loss, train_acc, val_loss, val_acc,
-            macro_precision, macro_recall, macro_f1, weighted_f1,
-            c_recall, cor_recall, mc_recall, mm_recall,
-            c_f1, cor_f1, mc_f1, mm_f1
-        ])
+        append_stage2_csv(
+            [
+                global_epoch,
+                train_loss,
+                train_acc,
+                val_loss,
+                val_acc,
+                macro_precision,
+                macro_recall,
+                macro_f1,
+                weighted_f1,
+                c_recall,
+                cor_recall,
+                mc_recall,
+                mm_recall,
+                c_f1,
+                cor_f1,
+                mc_f1,
+                mm_f1,
+            ]
+        )
 
         logger.info(
             f"Phase1 Epoch [{local_epoch}/{PHASE1_EPOCHS}] (Global {global_epoch}/{TOTAL_EPOCHS}) | "
@@ -629,12 +627,16 @@ def main():
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            save_checkpoint(BEST_ACC_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
+            save_checkpoint(
+                BEST_ACC_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2"
+            )
             logger.info(f"Saved best_acc checkpoint to: {BEST_ACC_PATH}")
 
         if macro_f1 > best_macro_f1:
             best_macro_f1 = macro_f1
-            save_checkpoint(BEST_F1_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
+            save_checkpoint(
+                BEST_F1_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2"
+            )
             logger.info(f"Saved best_macro_f1 checkpoint to: {BEST_F1_PATH}")
 
         save_checkpoint(LAST_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
@@ -661,12 +663,27 @@ def main():
         c_recall, cor_recall, mc_recall, mm_recall = metrics["per_class_recall"]
         c_f1, cor_f1, mc_f1, mm_f1 = metrics["per_class_f1"]
 
-        append_stage2_csv([
-            global_epoch, train_loss, train_acc, val_loss, val_acc,
-            macro_precision, macro_recall, macro_f1, weighted_f1,
-            c_recall, cor_recall, mc_recall, mm_recall,
-            c_f1, cor_f1, mc_f1, mm_f1
-        ])
+        append_stage2_csv(
+            [
+                global_epoch,
+                train_loss,
+                train_acc,
+                val_loss,
+                val_acc,
+                macro_precision,
+                macro_recall,
+                macro_f1,
+                weighted_f1,
+                c_recall,
+                cor_recall,
+                mc_recall,
+                mm_recall,
+                c_f1,
+                cor_f1,
+                mc_f1,
+                mm_f1,
+            ]
+        )
 
         logger.info(
             f"Phase2 Epoch [{local_epoch}/{PHASE2_EPOCHS}] (Global {global_epoch}/{TOTAL_EPOCHS}) | "
@@ -688,12 +705,16 @@ def main():
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            save_checkpoint(BEST_ACC_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
+            save_checkpoint(
+                BEST_ACC_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2"
+            )
             logger.info(f"Saved best_acc checkpoint to: {BEST_ACC_PATH}")
 
         if macro_f1 > best_macro_f1:
             best_macro_f1 = macro_f1
-            save_checkpoint(BEST_F1_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
+            save_checkpoint(
+                BEST_F1_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2"
+            )
             logger.info(f"Saved best_macro_f1 checkpoint to: {BEST_F1_PATH}")
 
         save_checkpoint(LAST_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
@@ -720,12 +741,27 @@ def main():
         c_recall, cor_recall, mc_recall, mm_recall = metrics["per_class_recall"]
         c_f1, cor_f1, mc_f1, mm_f1 = metrics["per_class_f1"]
 
-        append_stage2_csv([
-            global_epoch, train_loss, train_acc, val_loss, val_acc,
-            macro_precision, macro_recall, macro_f1, weighted_f1,
-            c_recall, cor_recall, mc_recall, mm_recall,
-            c_f1, cor_f1, mc_f1, mm_f1
-        ])
+        append_stage2_csv(
+            [
+                global_epoch,
+                train_loss,
+                train_acc,
+                val_loss,
+                val_acc,
+                macro_precision,
+                macro_recall,
+                macro_f1,
+                weighted_f1,
+                c_recall,
+                cor_recall,
+                mc_recall,
+                mm_recall,
+                c_f1,
+                cor_f1,
+                mc_f1,
+                mm_f1,
+            ]
+        )
 
         logger.info(
             f"Phase3 Epoch [{local_epoch}/{PHASE3_EPOCHS}] (Global {global_epoch}/{TOTAL_EPOCHS}) | "
@@ -747,12 +783,16 @@ def main():
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            save_checkpoint(BEST_ACC_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
+            save_checkpoint(
+                BEST_ACC_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2"
+            )
             logger.info(f"Saved best_acc checkpoint to: {BEST_ACC_PATH}")
 
         if macro_f1 > best_macro_f1:
             best_macro_f1 = macro_f1
-            save_checkpoint(BEST_F1_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
+            save_checkpoint(
+                BEST_F1_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2"
+            )
             logger.info(f"Saved best_macro_f1 checkpoint to: {BEST_F1_PATH}")
 
         save_checkpoint(LAST_PATH, model, optimizer, global_epoch, metrics, stage2_train_dataset.classes, "stage2")
